@@ -26,26 +26,26 @@ func _process(delta: float) -> void:
 	if destination.x < current_area.global_position.x:
 		var neighbor := _neighbor_for_exit(current_area, "west", destination)
 		if neighbor:
-			await _transition_to_area(neighbor, "west")
+			await _transition_to_area(neighbor, "west", destination)
 			return
 		destination.x = current_area.global_position.x + 0.1
 	elif destination.x > current_area.global_position.x + current_area.area_size.x:
 		var neighbor := _neighbor_for_exit(current_area, "east", destination)
 		if neighbor:
-			await _transition_to_area(neighbor, "east")
+			await _transition_to_area(neighbor, "east", destination)
 			return
 		destination.x = current_area.global_position.x + current_area.area_size.x - 0.1
 
 	if destination.y < current_area.global_position.y:
 		var neighbor := _neighbor_for_exit(current_area, "north", destination)
 		if neighbor:
-			await _transition_to_area(neighbor, "north")
+			await _transition_to_area(neighbor, "north", destination)
 			return
 		destination.y = current_area.global_position.y + 0.1
 	elif destination.y > current_area.global_position.y + current_area.area_size.y:
 		var neighbor := _neighbor_for_exit(current_area, "south", destination)
 		if neighbor:
-			await _transition_to_area(neighbor, "south")
+			await _transition_to_area(neighbor, "south", destination)
 			return
 		destination.y = current_area.global_position.y + current_area.area_size.y - 0.1
 
@@ -60,39 +60,47 @@ func _area_at(point: Vector2) -> MapArea:
 	return null
 
 func _neighbor_for_exit(area: MapArea, direction: String, crossing_point: Vector2) -> MapArea:
-	var enabled := false
+	var own_centers := area.get_pathway_centers(direction)
+	if own_centers.is_empty():
+		return null
+
 	var probe := crossing_point
 	match direction:
 		"north":
-			enabled = area.path_north
 			probe.y = area.global_position.y - 1.0
 		"east":
-			enabled = area.path_east
 			probe.x = area.global_position.x + area.area_size.x + 1.0
 		"south":
-			enabled = area.path_south
 			probe.y = area.global_position.y + area.area_size.y + 1.0
 		"west":
-			enabled = area.path_west
 			probe.x = area.global_position.x - 1.0
-	if not enabled:
-		return null
 	var neighbor := _area_at(probe)
 	if not neighbor:
 		return null
-	var matched := false
+
+	var opposite_side := ""
 	match direction:
 		"north":
-			matched = neighbor.path_south and absf(crossing_point.x - (area.global_position.x + area.area_size.x * 0.5)) <= area.path_width * 0.5 and absf(crossing_point.x - (neighbor.global_position.x + neighbor.area_size.x * 0.5)) <= neighbor.path_width * 0.5
+			opposite_side = "south"
 		"east":
-			matched = neighbor.path_west and absf(crossing_point.y - (area.global_position.y + area.area_size.y * 0.5)) <= area.path_width * 0.5 and absf(crossing_point.y - (neighbor.global_position.y + neighbor.area_size.y * 0.5)) <= neighbor.path_width * 0.5
+			opposite_side = "west"
 		"south":
-			matched = neighbor.path_north and absf(crossing_point.x - (area.global_position.x + area.area_size.x * 0.5)) <= area.path_width * 0.5 and absf(crossing_point.x - (neighbor.global_position.x + neighbor.area_size.x * 0.5)) <= neighbor.path_width * 0.5
+			opposite_side = "north"
 		"west":
-			matched = neighbor.path_east and absf(crossing_point.y - (area.global_position.y + area.area_size.y * 0.5)) <= area.path_width * 0.5 and absf(crossing_point.y - (neighbor.global_position.y + neighbor.area_size.y * 0.5)) <= neighbor.path_width * 0.5
-	return neighbor if matched else null
+			opposite_side = "east"
+	var neighbor_centers := neighbor.get_pathway_centers(opposite_side)
+	var crossing_coordinate := crossing_point.x if direction == "north" or direction == "south" else crossing_point.y
+	for own_center in own_centers:
+		if absf(crossing_coordinate - own_center) > area.path_width * 0.5:
+			continue
+		for neighbor_center in neighbor_centers:
+			if not is_equal_approx(own_center, neighbor_center):
+				continue
+			if absf(crossing_coordinate - neighbor_center) <= neighbor.path_width * 0.5:
+				return neighbor
+	return null
 
-func _transition_to_area(next_area: MapArea, exit_direction: String) -> void:
+func _transition_to_area(next_area: MapArea, exit_direction: String, crossing_point: Vector2) -> void:
 	transitioning = true
 	var close_tween := create_tween()
 	close_tween.tween_property(fade, "modulate:a", 1.0, transition_duration)
@@ -100,7 +108,7 @@ func _transition_to_area(next_area: MapArea, exit_direction: String) -> void:
 
 	_set_active_area(next_area)
 	current_area = next_area
-	global_position = _entry_position(next_area, exit_direction)
+	global_position = _entry_position(next_area, exit_direction, crossing_point)
 	_set_camera_bounds(next_area)
 	await get_tree().process_frame
 
@@ -109,17 +117,28 @@ func _transition_to_area(next_area: MapArea, exit_direction: String) -> void:
 	await open_tween.finished
 	transitioning = false
 
-func _entry_position(area: MapArea, exit_direction: String) -> Vector2:
+func _entry_position(area: MapArea, exit_direction: String, crossing_point: Vector2) -> Vector2:
 	match exit_direction:
 		"north":
-			return area.global_position + Vector2(area.area_size.x * 0.5, area.area_size.y - 96.0)
+			return Vector2(_closest_pathway_center(area, "south", crossing_point.x), area.global_position.y + area.area_size.y - 96.0)
 		"east":
-			return area.global_position + Vector2(96.0, area.area_size.y * 0.5)
+			return Vector2(area.global_position.x + 96.0, _closest_pathway_center(area, "west", crossing_point.y))
 		"south":
-			return area.global_position + Vector2(area.area_size.x * 0.5, 96.0)
+			return Vector2(_closest_pathway_center(area, "north", crossing_point.x), area.global_position.y + 96.0)
 		"west":
-			return area.global_position + Vector2(area.area_size.x - 96.0, area.area_size.y * 0.5)
+			return Vector2(area.global_position.x + area.area_size.x - 96.0, _closest_pathway_center(area, "east", crossing_point.y))
 	return area.global_position + area.area_size * 0.5
+
+func _closest_pathway_center(area: MapArea, side: String, coordinate: float) -> float:
+	var centers := area.get_pathway_centers(side)
+	var closest_center := coordinate
+	var closest_distance := INF
+	for center in centers:
+		var distance := absf(center - coordinate)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_center = center
+	return closest_center
 
 func _set_active_area(active_area: MapArea) -> void:
 	for node in get_tree().get_nodes_in_group("map_areas"):

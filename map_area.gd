@@ -11,12 +11,11 @@ class_name MapArea
 	set(value):
 		area_size = Vector2(maxf(value.x, 1.0), maxf(value.y, 1.0))
 		_redraw_layout()
-		if Engine.is_editor_hint():
-			call_deferred("_snap_to_neighbor")
 
 @export var grid_step := 256.0:
 	set(value):
 		grid_step = maxf(value, 1.0)
+		path_width = maxf(grid_step, roundf(path_width / grid_step) * grid_step)
 		_redraw_layout()
 
 @export var show_grid := true:
@@ -30,9 +29,29 @@ class_name MapArea
 		path_north = value
 		_redraw_layout()
 
+@export var north_path_offset_tiles := 0:
+	set(value):
+		north_path_offset_tiles = value
+		_redraw_layout()
+
+@export var north_path_tiles: Array[int] = []:
+	set(value):
+		north_path_tiles = value
+		_redraw_layout()
+
 @export var path_east := false:
 	set(value):
 		path_east = value
+		_redraw_layout()
+
+@export var east_path_offset_tiles := 0:
+	set(value):
+		east_path_offset_tiles = value
+		_redraw_layout()
+
+@export var east_path_tiles: Array[int] = []:
+	set(value):
+		east_path_tiles = value
 		_redraw_layout()
 
 @export var path_south := false:
@@ -40,14 +59,34 @@ class_name MapArea
 		path_south = value
 		_redraw_layout()
 
+@export var south_path_offset_tiles := 0:
+	set(value):
+		south_path_offset_tiles = value
+		_redraw_layout()
+
+@export var south_path_tiles: Array[int] = []:
+	set(value):
+		south_path_tiles = value
+		_redraw_layout()
+
 @export var path_west := false:
 	set(value):
 		path_west = value
 		_redraw_layout()
 
-@export var path_width := 220.0:
+@export var west_path_offset_tiles := 0:
 	set(value):
-		path_width = maxf(value, 40.0)
+		west_path_offset_tiles = value
+		_redraw_layout()
+
+@export var west_path_tiles: Array[int] = []:
+	set(value):
+		west_path_tiles = value
+		_redraw_layout()
+
+@export var path_width := 256.0:
+	set(value):
+		path_width = maxf(grid_step, roundf(value / grid_step) * grid_step)
 		_redraw_layout()
 
 @export_group("Editor Placement")
@@ -56,6 +95,66 @@ class_name MapArea
 
 const MAJOR_GRID_EVERY := 4
 var _snapping := false
+
+func get_pathway_centers(side: String) -> Array[float]:
+	var centers: Array[float] = []
+	var tile_indices: Array[int] = []
+	var side_length := 0.0
+	var global_origin := 0.0
+	var path_offset_tiles := 0
+	match side:
+		"north":
+			side_length = area_size.x
+			global_origin = global_position.x
+			path_offset_tiles = north_path_offset_tiles
+			if path_north:
+				centers.append(global_origin + _path_center_from_tile_offset(side_length, path_offset_tiles))
+			tile_indices.append_array(north_path_tiles)
+		"east":
+			side_length = area_size.y
+			global_origin = global_position.y
+			path_offset_tiles = east_path_offset_tiles
+			if path_east:
+				centers.append(global_origin + _path_center_from_tile_offset(side_length, path_offset_tiles))
+			tile_indices.append_array(east_path_tiles)
+		"south":
+			side_length = area_size.x
+			global_origin = global_position.x
+			path_offset_tiles = south_path_offset_tiles
+			if path_south:
+				centers.append(global_origin + _path_center_from_tile_offset(side_length, path_offset_tiles))
+			tile_indices.append_array(south_path_tiles)
+		"west":
+			side_length = area_size.y
+			global_origin = global_position.y
+			path_offset_tiles = west_path_offset_tiles
+			if path_west:
+				centers.append(global_origin + _path_center_from_tile_offset(side_length, path_offset_tiles))
+			tile_indices.append_array(west_path_tiles)
+		_:
+			return centers
+
+	for tile_index in tile_indices:
+		if tile_index < 0:
+			continue
+		var local_center := (float(tile_index) + 0.5) * grid_step
+		if local_center >= side_length:
+			continue
+		var world_center := global_origin + local_center
+		if not centers.has(world_center):
+			centers.append(world_center)
+	return centers
+
+func get_default_pathway_center(side: String) -> float:
+	var side_length := area_size.x if side == "north" or side == "south" else area_size.y
+	var global_origin := global_position.x if side == "north" or side == "south" else global_position.y
+	return global_origin + _path_center_from_tile_offset(side_length, 0)
+
+func _path_center_from_tile_offset(side_length: float, offset_tiles: int) -> float:
+	var half_width := minf(path_width * 0.5, side_length * 0.5)
+	var max_tile_offset := maxi(0, floori(maxf(0.0, side_length * 0.5 - half_width) / grid_step))
+	var safe_offset := clampi(offset_tiles, -max_tile_offset, max_tile_offset)
+	return side_length * 0.5 + float(safe_offset) * grid_step
 
 func _ready() -> void:
 	set_notify_transform(true)

@@ -9,8 +9,12 @@ Each area is one continuous **3840 × 2160** block. The camera view is **1940 ×
 - To add an area, select a node under `MapAreas` and duplicate it. The copy includes its ground and world art layers.
 - Move the copy near a side of an existing area. With `snap_to_neighbors` enabled (default), it snaps to the nearest edge and aligns the centers when it is within `snap_distance` (default **96** units).
 - To resize an area, select it and edit `area_size` in the Inspector. Neighboring areas remain where they are; drag them near the new edge to snap them into place.
-- To make a connection, enable the matching paths on both areas. For an east connection, set `path_east` on one area and `path_west` on its neighbor. The player can use the exit only when both paths align and are enabled.
-- Change the centered opening with `path_width`. Delete an area by selecting its node under `MapAreas` and pressing **Delete**.
+- The `path_north`, `path_east`, `path_south`, and `path_west` switches enable one opening on that side. Its `*_path_offset_tiles` control moves it in whole `grid_step` increments from the midpoint; **0** keeps it exactly centered as the area is resized. The editor guide is centered on the area boundary, with half of its depth on each side.
+- To add more openings, add tile indices to `north_path_tiles`, `east_path_tiles`, `south_path_tiles`, or `west_path_tiles` in the Inspector. These extra openings remain tile-aligned. Indices start at **0** from the left edge for north/south paths and from the top edge for east/west paths.
+- Resizing an area redraws its path guides at the new edges without moving the area. Neighbor snapping happens when moving the area.
+- Connect adjacent areas by aligning the world positions of openings on their facing sides. Matching tile indices work for extra openings when the areas share the same grid alignment. The player can cross only where both sides have an aligned opening.
+- `path_width` defaults to 256 units and rounds to a whole number of grid cells.
+- Delete an area by selecting its node under `MapAreas` and pressing **Delete**.
 
 ## Paint the placeholder tiles
 
