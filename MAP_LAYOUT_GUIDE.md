@@ -45,3 +45,9 @@ Select `Player` in the Scene dock to adjust the minimap in the Inspector under *
 Edit the paper, ink, and player-marker colors at the top of `minimap_control.gd`; the game now uses those values directly. To color rooms by biome or type, select each area node and set `minimap_color` under its **Minimap** group in the Inspector. Give areas of the same type the same color.
 
 Discovery is kept for the current run. The minimap uses each area's editor position and exit settings, so it follows the map layout as you move or add areas.
+
+## Placing path lights
+
+Stand on a `Path` tile and press **E** to place lights inside that same tile. A straight path gets two lights perpendicular to the route, a four-way crossing gets one in each corner, and a tile with three Path neighbors gets one on the side without a Path neighbor. The game spends 1 Light per lamp, and a path tile can only be lit once.
+
+The placeholder atlas marks `Path` at source ID `0`, atlas coordinate `(0, 3)`. Each area can override this under **Path Lights** in the Inspector. For a replacement atlas, update those values to the new Path tile. If the TileSet has a custom data layer named `tile_type`, setting the tile's value to `Path` takes precedence over the atlas coordinates.

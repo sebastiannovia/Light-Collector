@@ -1,8 +1,11 @@
 extends Node2D
 
 signal area_changed(area: MapArea)
+signal light_count_changed(count: int)
 
 const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
+const LIGHT_HUD_SCRIPT = preload("res://light_hud.gd")
+const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
@@ -22,21 +25,31 @@ const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
 @export var minimap_show_unknown_paths := true
 @export var minimap_handwritten_font: Font
 
+@export_group("Light HUD")
+@export var light_hud_visible := true
+@export var light_hud_position := Vector2(28.0, 28.0)
+@export_range(0, 999999, 1) var starting_light_count := 0
+
 @onready var camera: Camera2D = $Camera2D
 @onready var fade: ColorRect = get_node("../TransitionOverlay/Fade")
 
 var current_area: MapArea
 var transitioning := false
 var minimap_view: Control
+var light_count := 0
+var light_hud: Control
 
 func _ready() -> void:
 	add_to_group("map_player")
+	light_count = starting_light_count
 	current_area = _area_at(global_position)
 	if current_area:
 		_set_active_area(current_area)
 		_set_camera_bounds(current_area)
 	if minimap_enabled:
 		call_deferred("_create_minimap")
+	if light_hud_visible:
+		call_deferred("_create_light_hud")
 
 func _process(delta: float) -> void:
 	if transitioning or not current_area:
@@ -76,8 +89,74 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M and minimap_view:
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_M and minimap_view:
 		minimap_view.visible = not minimap_view.visible
+	elif event.keycode == KEY_E:
+		_try_place_path_lights()
+
+func add_light(amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	light_count += amount
+	light_count_changed.emit(light_count)
+	if light_hud:
+		light_hud.call("set_count", light_count)
+
+func set_light_count(count: int) -> void:
+	light_count = maxi(0, count)
+	light_count_changed.emit(light_count)
+	if light_hud:
+		light_hud.call("set_count", light_count)
+
+func _try_place_path_lights() -> void:
+	if not current_area:
+		return
+	var ground := current_area.get_node_or_null("GroundArt") as TileMapLayer
+	if not ground:
+		return
+	var path_cell := ground.local_to_map(ground.to_local(global_position))
+	if not current_area.is_path_tile(path_cell) or current_area.has_light_pair_for_path(path_cell):
+		return
+	var has_up := current_area.is_path_tile(path_cell + Vector2i.UP)
+	var has_right := current_area.is_path_tile(path_cell + Vector2i.RIGHT)
+	var has_down := current_area.is_path_tile(path_cell + Vector2i.DOWN)
+	var has_left := current_area.is_path_tile(path_cell + Vector2i.LEFT)
+	var neighbor_count := int(has_up) + int(has_right) + int(has_down) + int(has_left)
+	var light_offsets: Array[Vector2]
+	if neighbor_count == 4:
+		light_offsets = [Vector2(-1.25, -1.25), Vector2(1.25, -1.25), Vector2(1.25, 1.25), Vector2(-1.25, 1.25)]
+	elif neighbor_count == 3:
+		if not has_up:
+			light_offsets = [Vector2.UP]
+		elif not has_right:
+			light_offsets = [Vector2.RIGHT]
+		elif not has_down:
+			light_offsets = [Vector2.DOWN]
+		else:
+			light_offsets = [Vector2.LEFT]
+	else:
+		var horizontal_neighbors := int(has_left) + int(has_right)
+		var vertical_neighbors := int(has_up) + int(has_down)
+		if horizontal_neighbors > vertical_neighbors:
+			light_offsets = [Vector2.UP, Vector2.DOWN]
+		else:
+			light_offsets = [Vector2.LEFT, Vector2.RIGHT]
+	if light_count < light_offsets.size():
+		return
+	var container := current_area.get_light_container()
+	if not container:
+		return
+	var tile_size := Vector2(ground.tile_set.tile_size)
+	var path_center := ground.map_to_local(path_cell)
+	for offset in light_offsets:
+		var marker := Node2D.new()
+		marker.set_script(LIGHT_MARKER_SCRIPT)
+		marker.position = path_center + offset * tile_size * 0.30
+		container.add_child(marker)
+	current_area.mark_path_lit(path_cell)
+	set_light_count(light_count - light_offsets.size())
 
 func _area_at(point: Vector2) -> MapArea:
 	for node in get_tree().get_nodes_in_group("map_areas"):
@@ -168,6 +247,17 @@ func _create_minimap() -> void:
 		"show_unknown_paths": minimap_show_unknown_paths,
 		"handwritten_font": minimap_handwritten_font,
 	})
+
+func _create_light_hud() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "LightHUDLayer"
+	canvas.layer = 6
+	get_parent().add_child(canvas)
+	light_hud = Control.new()
+	light_hud.name = "LightHUD"
+	light_hud.set_script(LIGHT_HUD_SCRIPT)
+	canvas.add_child(light_hud)
+	light_hud.call("configure", light_count, light_hud_position)
 
 func _entry_position(area: MapArea, exit_direction: String, crossing_point: Vector2) -> Vector2:
 	match exit_direction:

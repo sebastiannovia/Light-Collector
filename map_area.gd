@@ -15,6 +15,10 @@ class_name MapArea
 @export_group("Minimap")
 @export var minimap_color := Color("95702cff")
 
+@export_group("Path Lights")
+@export_range(0, 255, 1) var path_tile_source_id := 0
+@export var path_tile_atlas_coords := Vector2i(0, 3)
+
 @export var grid_step := 256.0:
 	set(value):
 		grid_step = maxf(value, 1.0)
@@ -98,6 +102,45 @@ class_name MapArea
 
 const MAJOR_GRID_EVERY := 4
 var _snapping := false
+
+func is_path_tile(cell: Vector2i) -> bool:
+	var ground := get_node_or_null("GroundArt") as TileMapLayer
+	if not ground or ground.get_cell_source_id(cell) == -1:
+		return false
+	var tile_data := ground.get_cell_tile_data(cell)
+	if tile_data and ground.tile_set:
+		var type_layer := ground.tile_set.get_custom_data_layer_by_name("tile_type")
+		if type_layer >= 0:
+			return str(tile_data.get_custom_data("tile_type")).to_lower() == "path"
+	return ground.get_cell_source_id(cell) == path_tile_source_id and ground.get_cell_atlas_coords(cell) == path_tile_atlas_coords
+
+func get_light_container() -> Node2D:
+	var ground := get_node_or_null("GroundArt") as TileMapLayer
+	if not ground:
+		return null
+	var container := ground.get_node_or_null("PlacedLights") as Node2D
+	if not container:
+		container = Node2D.new()
+		container.name = "PlacedLights"
+		container.y_sort_enabled = true
+		ground.add_child(container)
+	return container
+
+func has_light_pair_for_path(cell: Vector2i) -> bool:
+	var container := get_light_container()
+	if not container:
+		return false
+	var cells: Array = container.get_meta("lit_path_cells", [])
+	return cells.has(cell)
+
+func mark_path_lit(cell: Vector2i) -> void:
+	var container := get_light_container()
+	if not container:
+		return
+	var cells: Array = container.get_meta("lit_path_cells", [])
+	if not cells.has(cell):
+		cells.append(cell)
+	container.set_meta("lit_path_cells", cells)
 
 func get_pathway_centers(side: String) -> Array[float]:
 	var centers: Array[float] = []
