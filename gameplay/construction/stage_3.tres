@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConstructionStage" format=3 uid="uid://md274yywaj16"]
+
+[ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="1_0bdkl"]
+[ext_resource type="Resource" path="res://gameplay/construction/wood_8.tres" id="2_rdnvj"]
+[ext_resource type="Resource" path="res://gameplay/construction/iron_4.tres" id="3_bb7ph"]
+[ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="4_icjp1"]
+
+[resource]
+script = ExtResource("4_icjp1")
+stage_name = "Finish"
+requirements = Array[ExtResource("1_0bdkl")]([ExtResource("2_rdnvj"), ExtResource("3_bb7ph")])
+visual_color = Color(0.77254903, 0.6313726, 0.41960785, 1)

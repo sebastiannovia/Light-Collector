@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstructionStage" format=3 uid="uid://cveilpvc3ca0t"]
+
+[ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="1_m7k85"]
+[ext_resource type="Resource" path="res://gameplay/construction/wood_5.tres" id="2_uqp0t"]
+[ext_resource type="Resource" path="res://gameplay/construction/stone_2.tres" id="3_j27ak"]
+[ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="4_cxypf"]
+
+[resource]
+script = ExtResource("4_cxypf")
+stage_name = "Foundation"
+requirements = Array[ExtResource("1_m7k85")]([ExtResource("2_uqp0t"), ExtResource("3_j27ak")])

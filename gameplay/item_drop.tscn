@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c7taihxsb0gs0"]
+
+[ext_resource type="Script" uid="uid://clqmat4nigw23" path="res://gameplay/item_drop.gd" id="1_f55h6"]
+
+[node name="ItemDrop" type="Node2D" unique_id=1832542464]
+script = ExtResource("1_f55h6")

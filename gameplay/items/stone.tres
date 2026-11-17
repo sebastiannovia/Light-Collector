@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://b0mobrwisiv4c"]
+
+[ext_resource type="Script" uid="uid://i584axpxrco5" path="res://gameplay/item_definition.gd" id="1_g3lnu"]
+
+[resource]
+script = ExtResource("1_g3lnu")
+item_id = &"stone"
+display_name = "Stone"
+description = "Mined from rocks. Used to build structures."
+max_stack_size = 40
+max_carry_quantity = 80
+world_color = Color(0.54901963, 0.6039216, 0.6392157, 1)

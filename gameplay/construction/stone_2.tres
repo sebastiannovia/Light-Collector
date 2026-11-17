@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ItemRequirement" format=3 uid="uid://cqciomph0sqlq"]
+
+[ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="1_dnnwj"]
+
+[resource]
+script = ExtResource("1_dnnwj")
+item_id = &"stone"
+quantity = 2

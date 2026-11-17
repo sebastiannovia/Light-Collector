@@ -93,8 +93,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.keycode == KEY_M and minimap_view:
 		minimap_view.visible = not minimap_view.visible
+	elif event.keycode == KEY_I:
+		var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
+		if inventory:
+			inventory.toggle_ui()
 	elif event.keycode == KEY_E:
+		if _try_interact_with_nearby_object():
+			return
 		_try_place_path_lights()
+
+func _try_interact_with_nearby_object() -> bool:
+	for interaction_group in ["construction_sites", "e_interactables"]:
+		for node in get_tree().get_nodes_in_group(interaction_group):
+			if not node.has_method("is_player_nearby") or not node.has_method("interact"):
+				continue
+			if bool(node.call("is_player_nearby")):
+				node.call("interact", self)
+				return true
+	return false
 
 func add_light(amount: int = 1) -> void:
 	if amount <= 0:

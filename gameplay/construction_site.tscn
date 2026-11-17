@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bxafdhqghabxr"]
+
+[ext_resource type="Script" uid="uid://bmubetluctwhm" path="res://gameplay/construction_site.gd" id="1_mjanx"]
+
+[node name="ConstructionSite" type="Node2D" unique_id=472540489]
+script = ExtResource("1_mjanx")
+construction_config_path = "res://gameplay/construction/tower_config.tres"
+site_label = "Tower"

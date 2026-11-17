@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstructionConfig" format=3 uid="uid://c4dussynbvwjt"]
+
+[ext_resource type="Script" uid="uid://cqmtsrdte3b6l" path="res://gameplay/construction_config.gd" id="1_iddcb"]
+[ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="2_ek786"]
+[ext_resource type="Resource" path="res://gameplay/construction/stage_1.tres" id="3_q6yga"]
+[ext_resource type="Resource" path="res://gameplay/construction/stage_2.tres" id="4_0eyoo"]
+[ext_resource type="Resource" path="res://gameplay/construction/stage_3.tres" id="5_v6yix"]
+
+[resource]
+script = ExtResource("1_iddcb")
+stages = Array[ExtResource("2_ek786")]([ExtResource("3_q6yga"), ExtResource("4_0eyoo"), ExtResource("5_v6yix")])

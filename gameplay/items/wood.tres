@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://dfx0sj0kdl6na"]
+
+[ext_resource type="Script" uid="uid://i584axpxrco5" path="res://gameplay/item_definition.gd" id="1_bk6in"]
+
+[resource]
+script = ExtResource("1_bk6in")
+item_id = &"wood"
+display_name = "Wood"
+description = "Sturdy timber used to build and repair structures."
+max_stack_size = 50
+max_carry_quantity = 100
+world_color = Color(0.7176471, 0.48235294, 0.27058825, 1)

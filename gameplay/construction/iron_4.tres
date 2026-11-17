@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ItemRequirement" format=3 uid="uid://c8dukdstm63j0"]
+
+[ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="1_353ce"]
+
+[resource]
+script = ExtResource("1_353ce")
+item_id = &"iron"
+quantity = 4

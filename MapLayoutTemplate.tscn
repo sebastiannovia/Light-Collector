@@ -5,6 +5,29 @@
 [ext_resource type="TileSet" uid="uid://dvkc5vo4yeadp" path="res://MapTiles.tres" id="3_tiles"]
 [ext_resource type="Script" uid="uid://duuh6yrs0nu3r" path="res://map_path_guides.gd" id="4_guides"]
 [ext_resource type="TileSet" uid="uid://50a0mf1ud86" path="res://Tiles/Forest Tiles/ForestMapTiles.tres" id="4_o2kl1"]
+[ext_resource type="PackedScene" uid="uid://boih35ylxd15h" path="res://gameplay/harvestable_rock.tscn" id="4_qb0cc"]
+[ext_resource type="Script" uid="uid://op6grnsnlo2i" path="res://gameplay/player_inventory.gd" id="6_iq43o"]
+[ext_resource type="Script" uid="uid://nqw440if4rn0" path="res://gameplay/item_database.gd" id="7_qb0cc"]
+[ext_resource type="PackedScene" uid="uid://bxafdhqghabxr" path="res://gameplay/construction_site.tscn" id="8_iq43o"]
+[ext_resource type="Script" uid="uid://cqmtsrdte3b6l" path="res://gameplay/construction_config.gd" id="9_qb0cc"]
+[ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="10_dldcj"]
+[ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="11_twa6h"]
+
+[sub_resource type="Resource" id="Resource_1hjth"]
+script = ExtResource("11_twa6h")
+item_id = &"stone"
+metadata/_custom_type_script = "uid://cdfpm24jkc6ju"
+
+[sub_resource type="Resource" id="Resource_4g2b3"]
+script = ExtResource("10_dldcj")
+stage_name = "Stage 0"
+requirements = Array[ExtResource("11_twa6h")]([SubResource("Resource_1hjth")])
+metadata/_custom_type_script = "uid://cl7emwpo77rs"
+
+[sub_resource type="Resource" id="Resource_6xgmt"]
+script = ExtResource("9_qb0cc")
+stages = Array[ExtResource("10_dldcj")]([SubResource("Resource_4g2b3")])
+metadata/_custom_type_script = "uid://cqmtsrdte3b6l"
 
 [node name="MapLayoutTemplate" type="Node2D" unique_id=1163969500]
 
@@ -14,15 +37,14 @@
 script = ExtResource("1_area")
 area_label = "Main Base"
 minimap_color = Color(0.9798991, 0.23298451, 0, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Main Base" unique_id=1443918497]
-tile_map_data = PackedByteArray("AAAAAAcAAAABAAIAAAAAAAgAAAABAAIAAAABAAcAAAABAAIAAAABAAgAAAABAAIAAAACAAcAAAABAAIAAAAHAAQAAAAAAAMAAAAGAAMAAAABAAIAAAAIAAQAAAAAAAMAAAAOAAgAAAABAAIAAAANAAgAAAABAAIAAAAMAAgAAAABAAIAAAALAAgAAAABAAIAAAAKAAgAAAABAAIAAAAJAAgAAAABAAIAAAAIAAgAAAABAAIAAAAHAAgAAAAAAAMAAAAGAAgAAAABAAIAAAAFAAgAAAABAAIAAAAEAAgAAAABAAIAAAADAAgAAAABAAIAAAACAAgAAAABAAIAAAADAAcAAAABAAIAAAAEAAcAAAABAAIAAAAFAAcAAAABAAIAAAAGAAcAAAABAAIAAAAHAAcAAAAAAAMAAAAIAAcAAAABAAIAAAAJAAcAAAABAAIAAAAKAAcAAAABAAIAAAALAAcAAAABAAIAAAAMAAcAAAABAAIAAAANAAcAAAABAAIAAAAOAAcAAAABAAIAAAAOAAYAAAABAAIAAAANAAYAAAABAAIAAAAMAAYAAAABAAIAAAALAAYAAAABAAIAAAAKAAYAAAABAAIAAAAJAAYAAAABAAIAAAAIAAYAAAABAAIAAAAHAAYAAAAAAAMAAAAGAAYAAAABAAIAAAAFAAYAAAABAAIAAAAEAAYAAAABAAIAAAADAAYAAAABAAIAAAACAAYAAAABAAIAAAABAAYAAAABAAIAAAAAAAYAAAABAAIAAAAAAAUAAAABAAIAAAABAAUAAAABAAIAAAACAAUAAAABAAIAAAADAAUAAAABAAIAAAAEAAUAAAABAAIAAAAFAAUAAAABAAIAAAAGAAUAAAABAAIAAAAHAAUAAAAAAAMAAAAIAAUAAAABAAIAAAAJAAUAAAABAAIAAAAKAAUAAAABAAIAAAALAAUAAAABAAIAAAAMAAUAAAABAAIAAAANAAUAAAABAAIAAAAOAAUAAAABAAIAAAAOAAQAAAAAAAMAAAANAAQAAAAAAAMAAAAMAAQAAAAAAAMAAAALAAQAAAAAAAMAAAAKAAQAAAAAAAMAAAAJAAQAAAAAAAMAAAAGAAQAAAAAAAMAAAAFAAQAAAAAAAMAAAAEAAQAAAAAAAMAAAADAAQAAAAAAAMAAAACAAQAAAAAAAMAAAABAAQAAAAAAAMAAAAAAAQAAAAAAAMAAAAAAAMAAAABAAIAAAABAAMAAAABAAIAAAACAAMAAAABAAIAAAADAAMAAAABAAIAAAAEAAMAAAABAAIAAAAFAAMAAAABAAIAAAAHAAMAAAAAAAMAAAAIAAMAAAABAAIAAAAJAAMAAAABAAIAAAAKAAMAAAABAAIAAAALAAMAAAABAAIAAAAMAAMAAAABAAIAAAANAAMAAAABAAIAAAAOAAMAAAABAAIAAAAOAAIAAAABAAIAAAANAAIAAAABAAIAAAAMAAIAAAABAAIAAAALAAIAAAABAAIAAAAKAAIAAAABAAIAAAAJAAIAAAABAAIAAAAIAAIAAAABAAIAAAAHAAIAAAAAAAMAAAAGAAIAAAABAAIAAAAFAAIAAAABAAIAAAAEAAIAAAABAAIAAAADAAIAAAABAAIAAAACAAIAAAABAAIAAAABAAIAAAABAAIAAAAAAAIAAAABAAIAAAAAAAEAAAABAAIAAAABAAEAAAABAAIAAAACAAEAAAABAAIAAAADAAEAAAABAAIAAAAEAAEAAAABAAIAAAAFAAEAAAABAAIAAAAGAAEAAAABAAIAAAAHAAEAAAAAAAMAAAAIAAEAAAABAAIAAAAJAAEAAAABAAIAAAAKAAEAAAABAAIAAAALAAEAAAABAAIAAAAMAAEAAAABAAIAAAANAAEAAAABAAIAAAAOAAEAAAABAAIAAAAOAAAAAAABAAIAAAANAAAAAAABAAIAAAAMAAAAAAABAAIAAAALAAAAAAABAAIAAAAKAAAAAAABAAIAAAAJAAAAAAABAAIAAAAIAAAAAAABAAIAAAAHAAAAAAAAAAMAAAAGAAAAAAABAAIAAAAFAAAAAAABAAIAAAAEAAAAAAABAAIAAAADAAAAAAABAAIAAAACAAAAAAABAAIAAAABAAAAAAABAAIAAAAAAAAAAAABAAIAAAD//wQAAAAAAAMAAAD+/wQAAAAAAAMAAAA=")
-tile_set = ExtResource("3_tiles")
+tile_map_data = PackedByteArray("AAAAAAcAAQABAAEAAAAAAAgAAQABAAIAAAABAAcAAQACAAEAAAABAAgAAQACAAIAAAACAAcAAQABAAEAAAAHAAQAAAAAAAMAAAAGAAMAAQADAAIAAAAIAAQAAAAAAAMAAAAOAAgAAQADAAIAAAANAAgAAQACAAIAAAAMAAgAAQADAAIAAAALAAgAAQACAAIAAAAKAAgAAQABAAIAAAAJAAgAAQACAAIAAAAIAAgAAQABAAIAAAAHAAgAAAAAAAMAAAAGAAgAAQADAAIAAAAFAAgAAQACAAIAAAAEAAgAAQABAAIAAAADAAgAAQACAAIAAAACAAgAAQABAAIAAAADAAcAAQABAAIAAAAEAAcAAQABAAEAAAAFAAcAAQACAAEAAAAGAAcAAQADAAEAAAAHAAcAAAAAAAMAAAAIAAcAAQABAAIAAAAJAAcAAQACAAIAAAAKAAcAAQABAAIAAAALAAcAAQACAAIAAAAMAAcAAQADAAIAAAANAAcAAQACAAIAAAAOAAcAAQADAAIAAAAOAAYAAQADAAEAAAANAAYAAQACAAEAAAAMAAYAAQADAAEAAAALAAYAAQACAAEAAAAKAAYAAQABAAEAAAAJAAYAAQACAAEAAAAIAAYAAQABAAEAAAAHAAYAAAAAAAMAAAAGAAYAAQADAAAAAAAFAAYAAQACAAAAAAAEAAYAAQABAAAAAAADAAYAAQABAAEAAAACAAYAAQABAAAAAAABAAYAAQACAAAAAAAAAAYAAQABAAAAAAAAAAUAAQABAAAAAAABAAUAAQACAAAAAAACAAUAAQADAAAAAAADAAUAAQABAAAAAAAEAAUAAQABAAAAAAAFAAUAAQACAAAAAAAGAAUAAQADAAAAAAAHAAUAAAAAAAMAAAAIAAUAAQABAAAAAAAJAAUAAQACAAAAAAAKAAUAAQABAAAAAAALAAUAAQACAAAAAAAMAAUAAQADAAAAAAANAAUAAQACAAAAAAAOAAUAAQADAAAAAAAOAAQAAAAAAAMAAAANAAQAAAAAAAMAAAAMAAQAAAAAAAMAAAALAAQAAAAAAAMAAAAKAAQAAAAAAAMAAAAJAAQAAAAAAAMAAAAGAAQAAAAAAAMAAAAFAAQAAAAAAAMAAAAEAAQAAAAAAAMAAAADAAQAAAAAAAMAAAACAAQAAAAAAAMAAAABAAQAAAAAAAMAAAAAAAQAAAAAAAMAAAAAAAMAAQABAAIAAAABAAMAAQACAAIAAAACAAMAAQABAAIAAAADAAMAAQACAAIAAAAEAAMAAQABAAIAAAAFAAMAAQACAAIAAAAHAAMAAAAAAAMAAAAIAAMAAQABAAIAAAAJAAMAAQACAAIAAAAKAAMAAQADAAIAAAALAAMAAQABAAIAAAAMAAMAAQACAAIAAAANAAMAAQABAAIAAAAOAAMAAQACAAIAAAAOAAIAAQACAAEAAAANAAIAAQABAAEAAAAMAAIAAQACAAEAAAALAAIAAQABAAEAAAAKAAIAAQACAAIAAAAJAAIAAQABAAIAAAAIAAIAAQABAAIAAAAHAAIAAAAAAAMAAAAGAAIAAQADAAEAAAAFAAIAAQACAAEAAAAEAAIAAQABAAEAAAADAAIAAQACAAEAAAACAAIAAQABAAEAAAABAAIAAQACAAEAAAAAAAIAAQABAAEAAAAAAAEAAQABAAIAAAABAAEAAQACAAIAAAACAAEAAQABAAAAAAADAAEAAQACAAAAAAAEAAEAAQABAAIAAAAFAAEAAQACAAIAAAAGAAEAAQADAAIAAAAHAAEAAAAAAAMAAAAIAAEAAQABAAEAAAAJAAEAAQABAAEAAAAKAAEAAQACAAEAAAALAAEAAQABAAAAAAAMAAEAAQABAAIAAAANAAEAAQABAAAAAAAOAAEAAQACAAAAAAAOAAAAAQADAAEAAAANAAAAAQACAAEAAAAMAAAAAQABAAEAAAALAAAAAQADAAAAAAAKAAAAAQACAAAAAAAJAAAAAQABAAAAAAAIAAAAAQABAAAAAAAHAAAAAAAAAAMAAAAGAAAAAQADAAEAAAAFAAAAAQACAAEAAAAEAAAAAQABAAEAAAADAAAAAQABAAEAAAACAAAAAQADAAEAAAABAAAAAQACAAEAAAAAAAAAAQABAAEAAAD//wQAAAAAAAMAAAD+/wQAAAAAAAMAAAAMAP//AQABAAAAAAANAP//AQACAAAAAAAOAP//AQADAAAAAAAPAAEAAQADAAAAAAAPAAIAAQADAAEAAAAPAAMAAQADAAIAAAAAAP//AQABAAAAAAABAP//AQACAAAAAAACAP//AQADAAAAAAADAP//AQABAAAAAAAEAP//AQABAAAAAAAFAP//AQACAAAAAAAGAP//AQADAAAAAAA=")
+tile_set = ExtResource("4_o2kl1")
 
 [node name="WorldArt" type="TileMapLayer" parent="MapAreas/Main Base" unique_id=457740138]
 y_sort_enabled = true
@@ -32,12 +54,18 @@ tile_set = ExtResource("3_tiles")
 z_index = 10
 script = ExtResource("4_guides")
 
+[node name="StoneRock" parent="MapAreas/Main Base" unique_id=762583996 instance=ExtResource("4_qb0cc")]
+position = Vector2(2321, 1508)
+
+[node name="ConstructionSite" parent="MapAreas/Main Base" unique_id=472540489 instance=ExtResource("8_iq43o")]
+position = Vector2(766, 561)
+construction_config = SubResource("Resource_6xgmt")
+
 [node name="Forest" type="Node2D" parent="MapAreas" unique_id=1516075973 groups=["map_areas"]]
 position = Vector2(-3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -60,7 +88,6 @@ position = Vector2(3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-floor_saturation = null
 path_east = true
 path_south = true
 path_west = true
@@ -82,7 +109,6 @@ position = Vector2(7680, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2 Entry"
 minimap_color = Color(0.5173793, 0.52360475, 0.5552469, 1)
-floor_saturation = null
 path_east = true
 path_west = true
 
@@ -103,7 +129,6 @@ position = Vector2(11520, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_1"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_west = true
@@ -125,7 +150,6 @@ position = Vector2(15360, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_4"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 2_4" unique_id=1141644942]
@@ -145,7 +169,6 @@ position = Vector2(11520, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_south = true
 path_west = true
 
@@ -166,7 +189,6 @@ position = Vector2(7680, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_east = true
 path_south = true
 path_west = true
@@ -188,7 +210,6 @@ position = Vector2(-7680, -4320)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_north = true
 path_south = true
 
@@ -209,7 +230,6 @@ position = Vector2(-7680, -6480)
 script = ExtResource("1_area")
 area_label = "Cave 3_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-floor_saturation = null
 path_south = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 3_2" unique_id=741906695]
@@ -229,7 +249,6 @@ position = Vector2(0, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -252,7 +271,6 @@ position = Vector2(3840, -2160)
 script = ExtResource("1_area")
 area_label = "Resin"
 minimap_color = Color(0.70962167, 0.54073066, 0.09971144, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -297,7 +315,6 @@ script = ExtResource("4_guides")
 position = Vector2(0, 4320)
 script = ExtResource("1_area")
 area_label = "Bridge"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -319,7 +336,6 @@ script = ExtResource("4_guides")
 position = Vector2(0, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -341,7 +357,6 @@ script = ExtResource("4_guides")
 position = Vector2(3840, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -364,7 +379,6 @@ position = Vector2(7680, 5400)
 script = ExtResource("1_area")
 area_label = "Settlement"
 area_size = Vector2(7680, 4320)
-floor_saturation = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Settlement1" unique_id=1361338019]
@@ -384,7 +398,6 @@ position = Vector2(-3840, -8640)
 script = ExtResource("1_area")
 area_label = "Boss Cave"
 area_size = Vector2(11520, 6480)
-floor_saturation = null
 path_south = true
 south_path_tiles = Array[int]([7, 37])
 
@@ -405,7 +418,6 @@ position = Vector2(-11520, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -427,7 +439,6 @@ script = ExtResource("4_guides")
 position = Vector2(-11520, 0)
 script = ExtResource("1_area")
 area_label = "Start"
-floor_saturation = null
 path_east = true
 path_west = true
 
@@ -447,7 +458,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, -2160)
 script = ExtResource("1_area")
 area_label = "Waterfall"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -469,7 +479,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 0)
 script = ExtResource("1_area")
 area_label = "River"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -491,7 +500,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 2160)
 script = ExtResource("1_area")
 area_label = "River"
-floor_saturation = null
 path_north = true
 path_east = true
 path_south = true
@@ -513,7 +521,6 @@ position = Vector2(-3840, 2160)
 script = ExtResource("1_area")
 area_label = "Lake"
 area_size = Vector2(11520, 2160)
-floor_saturation = null
 path_north = true
 north_path_tiles = Array[int]([7, 37])
 path_east = true
@@ -542,6 +549,10 @@ starting_light_count = 50
 position_smoothing_enabled = true
 editor_draw_limits = true
 
+[node name="PlayerInventory" type="Node" parent="Player" unique_id=1607869996]
+script = ExtResource("6_iq43o")
+item_database_path = NodePath("../../ItemDatabase")
+
 [node name="TransitionOverlay" type="CanvasLayer" parent="." unique_id=1070179766]
 layer = 10
 
@@ -554,3 +565,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 1)
+
+[node name="ItemDatabase" type="Node" parent="." unique_id=310480571]
+script = ExtResource("7_qb0cc")
+definition_paths = Array[String](["res://gameplay/items/wood.tres", "res://gameplay/items/stone.tres", "res://gameplay/items/iron.tres"])

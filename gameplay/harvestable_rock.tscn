@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://boih35ylxd15h"]
+
+[ext_resource type="Script" uid="uid://c7i48rlfjk4v3" path="res://gameplay/harvestable_rock.gd" id="1_ow2v6"]
+
+[node name="HarvestableRock" type="Node2D" unique_id=762583996]
+script = ExtResource("1_ow2v6")
+
+[node name="RockShadow" type="Polygon2D" parent="." unique_id=502015034]
+color = Color(0, 0, 0, 0.23921569)
+polygon = PackedVector2Array(-47, 23, -41, 17, -24, 12, 0, 9, 24, 12, 41, 17, 47, 23, 41, 29, 24, 34, 0, 37, -24, 34, -41, 29)
+
+[node name="RockBase" type="Polygon2D" parent="." unique_id=895052771]
+color = Color(0.46666667, 0.49019608, 0.5019608, 1)
+polygon = PackedVector2Array(-43, 13, -36, -13, -17, -31, 8, -38, 30, -23, 43, 3, 29, 27, 4, 35, -26, 29)
+
+[node name="RockOutline" type="Line2D" parent="." unique_id=1689021984]
+points = PackedVector2Array(-43, 13, -36, -13, -17, -31, 8, -38, 30, -23, 43, 3, 29, 27, 4, 35, -26, 29)
+closed = true
+width = 4.0
+default_color = Color(0.1882353, 0.22352941, 0.25490198, 1)
+
+[node name="RockHighlight" type="Polygon2D" parent="." unique_id=1126027239]
+color = Color(0.6666667, 0.69411767, 0.6901961, 1)
+polygon = PackedVector2Array(-36, -13, -17, -31, 8, -38, 5, -10, -14, 5)
+
+[node name="RockSide" type="Polygon2D" parent="." unique_id=1996059434]
+color = Color(0.57254905, 0.6039216, 0.6117647, 1)
+polygon = PackedVector2Array(8, -38, 30, -23, 43, 3, 19, 10, 5, -10)
+
+[node name="RockFront" type="Polygon2D" parent="." unique_id=671576561]
+color = Color(0.38431373, 0.41960785, 0.4392157, 1)
+polygon = PackedVector2Array(-14, 5, 5, -10, 19, 10, 4, 31, -26, 29)
