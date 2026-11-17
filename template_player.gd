@@ -1,19 +1,42 @@
 extends Node2D
 
+signal area_changed(area: MapArea)
+
+const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
+
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
+
+@export_group("Minimap")
+@export var minimap_enabled := true
+@export_enum("Top Left", "Top Right", "Bottom Left", "Bottom Right") var minimap_corner := 1
+@export var minimap_offset := Vector2(28.0, 28.0)
+@export var minimap_panel_size := Vector2(360.0, 250.0)
+@export_range(0.4, 3.0, 0.01) var minimap_map_scale := 1.0
+@export_range(4.0, 36.0, 1.0) var minimap_padding := 16.0
+@export_range(0.0, 24.0, 1.0) var minimap_room_gap := 7.0
+@export_range(0.5, 6.0, 0.1) var minimap_line_width := 2.0
+@export_range(0.0, 5.0, 0.1) var minimap_line_wobble := 1.4
+@export_range(0.1, 3.0, 0.1) var minimap_reveal_duration := 0.8
+@export var minimap_show_area_names := true
+@export var minimap_show_unknown_paths := true
+@export var minimap_handwritten_font: Font
 
 @onready var camera: Camera2D = $Camera2D
 @onready var fade: ColorRect = get_node("../TransitionOverlay/Fade")
 
 var current_area: MapArea
 var transitioning := false
+var minimap_view: Control
 
 func _ready() -> void:
+	add_to_group("map_player")
 	current_area = _area_at(global_position)
 	if current_area:
 		_set_active_area(current_area)
 		_set_camera_bounds(current_area)
+	if minimap_enabled:
+		call_deferred("_create_minimap")
 
 func _process(delta: float) -> void:
 	if transitioning or not current_area:
@@ -51,6 +74,10 @@ func _process(delta: float) -> void:
 
 	global_position = destination
 	queue_redraw()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M and minimap_view:
+		minimap_view.visible = not minimap_view.visible
 
 func _area_at(point: Vector2) -> MapArea:
 	for node in get_tree().get_nodes_in_group("map_areas"):
@@ -115,7 +142,32 @@ func _transition_to_area(next_area: MapArea, exit_direction: String, crossing_po
 	var open_tween := create_tween()
 	open_tween.tween_property(fade, "modulate:a", 0.0, transition_duration)
 	await open_tween.finished
+	area_changed.emit(next_area)
 	transitioning = false
+
+func _create_minimap() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "HandDrawnMinimapLayer"
+	canvas.layer = 5
+	get_parent().add_child(canvas)
+	minimap_view = Control.new()
+	minimap_view.name = "HandDrawnMinimap"
+	minimap_view.set_script(MINIMAP_SCRIPT)
+	canvas.add_child(minimap_view)
+	minimap_view.call("configure", self, {
+		"corner": minimap_corner,
+		"offset": minimap_offset,
+		"panel_size": minimap_panel_size,
+		"map_scale": minimap_map_scale,
+		"padding": minimap_padding,
+		"room_gap": minimap_room_gap,
+		"line_width": minimap_line_width,
+		"line_wobble": minimap_line_wobble,
+		"reveal_duration": minimap_reveal_duration,
+		"show_area_names": minimap_show_area_names,
+		"show_unknown_paths": minimap_show_unknown_paths,
+		"handwritten_font": minimap_handwritten_font,
+	})
 
 func _entry_position(area: MapArea, exit_direction: String, crossing_point: Vector2) -> Vector2:
 	match exit_direction:

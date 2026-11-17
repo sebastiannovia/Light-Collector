@@ -12,6 +12,9 @@ class_name MapArea
 		area_size = Vector2(maxf(value.x, 1.0), maxf(value.y, 1.0))
 		_redraw_layout()
 
+@export_group("Minimap")
+@export var minimap_color := Color("95702cff")
+
 @export var grid_step := 256.0:
 	set(value):
 		grid_step = maxf(value, 1.0)

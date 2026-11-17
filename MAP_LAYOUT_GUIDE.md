@@ -29,3 +29,19 @@ To replace the placeholders later, add the finished 256 × 256 tile sheet to the
 Godot's `TileMapLayer` paints tiles from a shared `TileSet`, and separate layers help order ground and objects independently. See the [Godot TileMap guide](https://docs.godotengine.org/en/stable/tutorials/2d/using_tilemaps.html).
 
 The area height of 2160 is not divisible by 256. The last tile row is partial; leave it empty or change the area height to a multiple of 256, such as 2304, if you want a full row.
+
+## Hand-drawn minimap
+
+The minimap reveals the starting area and adds each new area after its transition. It draws rough ink outlines, discovered exits, room labels, and a player marker on a paper-colored panel. Press **M** to hide or show it.
+
+Select `Player` in the Scene dock to adjust the minimap in the Inspector under **Minimap**:
+
+- `minimap_corner` and `minimap_offset` set its screen position.
+- `minimap_panel_size`, `minimap_padding`, and `minimap_map_scale` control its size and how much of the area layout fits inside it.
+- `minimap_room_gap`, `minimap_line_width`, and `minimap_line_wobble` control the sketch appearance.
+- Assign `minimap_handwritten_font` if you have a handwritten font; otherwise it uses Godot's default font.
+- `minimap_reveal_duration`, `minimap_show_area_names`, and `minimap_show_unknown_paths` control discovery and labels.
+
+Edit the paper, ink, and player-marker colors at the top of `minimap_control.gd`; the game now uses those values directly. To color rooms by biome or type, select each area node and set `minimap_color` under its **Minimap** group in the Inspector. Give areas of the same type the same color.
+
+Discovery is kept for the current run. The minimap uses each area's editor position and exit settings, so it follows the map layout as you move or add areas.
