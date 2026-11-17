@@ -2,6 +2,8 @@
 extends Node2D
 class_name MapArea
 
+const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
+
 @export var area_label := "NEW AREA":
 	set(value):
 		area_label = value
@@ -18,6 +20,9 @@ class_name MapArea
 @export_group("Path Lights")
 @export_range(0, 255, 1) var path_tile_source_id := 0
 @export var path_tile_atlas_coords := Vector2i(0, 3)
+
+@export_group("Ground Appearance")
+@export_range(1.0, 1.5, 0.01) var floor_saturation := 1.15
 
 @export var grid_step := 256.0:
 	set(value):
@@ -204,6 +209,17 @@ func _path_center_from_tile_offset(side_length: float, offset_tiles: int) -> flo
 
 func _ready() -> void:
 	set_notify_transform(true)
+	if not Engine.is_editor_hint():
+		_apply_floor_saturation()
+
+func _apply_floor_saturation() -> void:
+	var ground := get_node_or_null("GroundArt") as TileMapLayer
+	if not ground:
+		return
+	var material := ShaderMaterial.new()
+	material.shader = FLOOR_SATURATION_SHADER
+	material.set_shader_parameter("saturation", floor_saturation)
+	ground.material = material
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSFORM_CHANGED and Engine.is_editor_hint() and snap_to_neighbors and not _snapping:

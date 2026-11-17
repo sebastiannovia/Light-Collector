@@ -30,6 +30,10 @@ Godot's `TileMapLayer` paints tiles from a shared `TileSet`, and separate layers
 
 The area height of 2160 is not divisible by 256. The last tile row is partial; leave it empty or change the area height to a multiple of 256, such as 2304, if you want a full row.
 
+## Forest tiles
+
+`Tiles/Forest Tiles/ForestMapTiles.tres` combines the existing placeholder atlas with the 12 forest images in a 4 × 3 atlas. Each cell is 256 × 256. The original atlas remains source ID `0`; the forest atlas is source ID `1`, so existing painted cells keep their coordinates. To use it, select a `GroundArt` or `WorldArt` layer and assign `ForestMapTiles.tres` to its **Tile Set** property. Forest variants also carry their original filename in the `forest_variant` custom data field.
+
 ## Hand-drawn minimap
 
 The minimap reveals the starting area and adds each new area after its transition. It draws rough ink outlines, discovered exits, room labels, and a player marker on a paper-colored panel. Press **M** to hide or show it.
@@ -45,6 +49,10 @@ Select `Player` in the Scene dock to adjust the minimap in the Inspector under *
 Edit the paper, ink, and player-marker colors at the top of `minimap_control.gd`; the game now uses those values directly. To color rooms by biome or type, select each area node and set `minimap_color` under its **Minimap** group in the Inspector. Give areas of the same type the same color.
 
 Discovery is kept for the current run. The minimap uses each area's editor position and exit settings, so it follows the map layout as you move or add areas.
+
+## Ground saturation
+
+Each area applies `floor_saturation.gdshader` to its `GroundArt` layer during gameplay. Adjust **Ground Appearance → Floor Saturation** on an area; `1.0` keeps the original colors and `1.15` is the default subtle boost. `WorldArt` is not affected.
 
 ## Placing path lights
 
