@@ -9,6 +9,7 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
+@export_range(0.0, 96.0, 1.0) var tree_collision_radius := 22.0
 
 @export_group("Minimap")
 @export var minimap_enabled := true
@@ -85,8 +86,29 @@ func _process(delta: float) -> void:
 			return
 		destination.y = current_area.global_position.y + current_area.area_size.y - 0.1
 
-	global_position = destination
+	global_position = _resolve_tree_collisions(destination)
 	queue_redraw()
+
+func _resolve_tree_collisions(destination: Vector2) -> Vector2:
+	if not _tree_blocks_motion(global_position, destination):
+		return destination
+	var horizontal_step := Vector2(destination.x, global_position.y)
+	var vertical_step := Vector2(global_position.x, destination.y)
+	var horizontal_blocked := _tree_blocks_motion(global_position, horizontal_step)
+	var vertical_blocked := _tree_blocks_motion(global_position, vertical_step)
+	if not horizontal_blocked and not vertical_blocked:
+		return horizontal_step if absf(destination.x - global_position.x) >= absf(destination.y - global_position.y) else vertical_step
+	if not horizontal_blocked:
+		return horizontal_step
+	if not vertical_blocked:
+		return vertical_step
+	return global_position
+
+func _tree_blocks_motion(from_position: Vector2, to_position: Vector2) -> bool:
+	for tree in get_tree().get_nodes_in_group("solid_tree_obstacles"):
+		if tree.has_method("blocks_player_motion") and tree.call("blocks_player_motion", from_position, to_position, tree_collision_radius):
+			return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:

@@ -28,6 +28,12 @@ Call `ItemDropSpawner.spawn_item_drop(&"wood", 4, world_position)` from another 
 
 The main scene includes a sample `HarvestableRock` in Main Base. Press **E** nearby four times to mine it; it drops three Stone items. Its scene exports let you change the required hits, interaction range and stone yield. Harvestable objects can use this same drop method when their own action succeeds.
 
+`gameplay/Gatherables/harvestable_tree.tscn` is a separate tree gatherable. Add PNG textures to its **Tree Appearance → Tree Textures** array; each instance randomly chooses one when it enters the scene. With no textures assigned, it draws a simple placeholder tree. Adjust `tree_scale`, `texture_offset`, required hits and `wood_quantity` on the instance. Press **E** nearby to chop it and receive Wood.
+
+To make a forest, select an area node and use **Forest Scatter**. `Forest Atlas Source ID` defaults to `1`, the `forest_atlas.png` source in `ForestMapTiles.tres`. `Forest Tile Names` chooses which `forest_variant` values can receive trees, such as `straight_grass`, `mini_grass`, or `long_grass_02`; clear the list to allow all variants. Set the number of trees, minimum spacing, tile-edge margin, scale range, rotation range, and seed, then press **Scatter Trees on Matching Tiles**. Set the seed to `0` for a new random layout each time, or another number to repeat a layout. **Clear Scattered Trees** removes only trees made by this scatter tool. Each tree still selects a PNG from its `Tree Textures` list.
+
+When the player is behind a tree, its `tree_occlusion.gdshader` fades a soft circular area around the player. Tune **Occlusion Radius** and **Occlusion Edge Softness** on the tree instance.
+
 ## Construction
 
 Instance `gameplay/construction_site.tscn` and set its `construction_config_path` to a `ConstructionConfig` resource. The sample is `gameplay/construction/tower_config.tres`, with three configurable stages. Each `ConstructionStage` has an ordered array of `ItemRequirement` resources, plus an optional visual scene and fallback color.

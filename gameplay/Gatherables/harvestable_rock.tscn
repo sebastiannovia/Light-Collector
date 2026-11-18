@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://boih35ylxd15h"]
 
-[ext_resource type="Script" uid="uid://c7i48rlfjk4v3" path="res://gameplay/harvestable_rock.gd" id="1_ow2v6"]
+[ext_resource type="Script" uid="uid://c7i48rlfjk4v3" path="res://gameplay/Gatherables/harvestable_rock.gd" id="1_ow2v6"]
 
 [node name="HarvestableRock" type="Node2D" unique_id=762583996]
 script = ExtResource("1_ow2v6")

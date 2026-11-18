@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://li37js7hxtwx"]
+
+[ext_resource type="Script" uid="uid://mo2jasj04hsu" path="res://gameplay/Gatherables/harvestable_tree.gd" id="1_egjy7"]
+[ext_resource type="Texture2D" uid="uid://cn26og4uiiquh" path="res://Assets/Trees/tree_example.png" id="2_ja7j0"]
+[ext_resource type="Texture2D" uid="uid://dpr0abqe5w06s" path="res://Assets/Trees/tree_example_02.png" id="3_dntig"]
+[ext_resource type="Texture2D" uid="uid://c3574mch1afmt" path="res://Assets/Trees/tree_example_03.png" id="4_p8r1t"]
+
+[node name="HarvestableTree" type="Node2D" unique_id=762583996]
+script = ExtResource("1_egjy7")
+tree_textures = Array[Texture2D]([ExtResource("2_ja7j0"), ExtResource("3_dntig"), ExtResource("4_p8r1t")])
+prompt_text = ""
+occlusion_radius = null
+occlusion_edge_softness = null
+occluded_opacity_percent = 40.0
+trunk_collision_radius = null
+trunk_collision_offset = null

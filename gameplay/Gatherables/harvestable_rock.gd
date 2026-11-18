@@ -71,8 +71,6 @@ func _player_inventory(player: Node) -> PlayerInventory:
 	return player.get_node_or_null("PlayerInventory") as PlayerInventory
 
 func _draw() -> void:
-	if Engine.is_editor_hint() or not _nearby_player or _depleted:
-		return
 	draw_string(ThemeDB.fallback_font, Vector2(-110, -49), "%s  %d/%d" % [prompt_text, hit_count, hits_required], HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color("ffd166"))
 	for index in hits_required:
 		var bar_color := Color("d69a55") if index < hit_count else Color("263746")

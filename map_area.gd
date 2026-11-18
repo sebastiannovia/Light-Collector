@@ -3,6 +3,7 @@ extends Node2D
 class_name MapArea
 
 const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
+const DEFAULT_TREE_SCENE := preload("res://gameplay/Gatherables/harvestable_tree.tscn")
 
 @export var area_label := "NEW AREA":
 	set(value):
@@ -23,6 +24,28 @@ const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
 
 @export_group("Ground Appearance")
 @export_range(1.0, 1.5, 0.01) var floor_saturation := 1.15
+
+@export_group("Forest Scatter")
+@export_range(0, 255, 1) var forest_atlas_source_id := 1
+@export var forest_tile_names: Array[StringName] = [
+	&"straight_grass", &"small_grass", &"small_ball_grass", &"mini_grass",
+	&"mini_grass_02", &"mini_ball_grass", &"long_grass_01", &"long_grass_02",
+	&"long_grass_03", &"long_ball_grass_01", &"long_ball_grass_02", &"long_ball_grass_03",
+]
+@export_range(0, 500, 1) var forest_tree_count := 20
+@export_range(0.0, 2048.0, 16.0) var forest_min_tree_spacing := 560.0
+@export_range(0.0, 120.0, 4.0) var forest_tile_edge_margin := 32.0
+@export_range(0.1, 4.0, 0.05) var forest_min_tree_scale := 0.85
+@export_range(0.1, 4.0, 0.05) var forest_max_tree_scale := 1.15
+@export_range(0.0, 20.0, 0.5) var forest_random_rotation_degrees := 5.0
+@export var forest_scatter_seed := 0
+@export var forest_tree_scene: PackedScene = DEFAULT_TREE_SCENE
+@export_tool_button("Scatter Trees on Matching Tiles") var scatter_forest_trees_action: Callable:
+	get:
+		return Callable(self, "_scatter_forest_trees")
+@export_tool_button("Clear Scattered Trees") var clear_forest_trees_action: Callable:
+	get:
+		return Callable(self, "_clear_scattered_forest_trees")
 
 @export var grid_step := 256.0:
 	set(value):
@@ -220,6 +243,97 @@ func _apply_floor_saturation() -> void:
 	material.shader = FLOOR_SATURATION_SHADER
 	material.set_shader_parameter("saturation", floor_saturation)
 	ground.material = material
+
+func _scatter_forest_trees() -> void:
+	if not Engine.is_editor_hint():
+		return
+	var ground := get_node_or_null("GroundArt") as TileMapLayer
+	var world_art := get_node_or_null("WorldArt") as TileMapLayer
+	if not ground or not world_art or not ground.tile_set or not forest_tree_scene:
+		push_warning("Forest scatter needs GroundArt with a TileSet, WorldArt and a tree scene.")
+		return
+	var variant_layer := ground.tile_set.get_custom_data_layer_by_name("forest_variant")
+	if variant_layer < 0:
+		push_warning("The GroundArt TileSet needs a custom data layer named 'forest_variant'.")
+		return
+	_clear_scattered_forest_trees()
+	var matching_cells: Array[Vector2i] = []
+	for cell in ground.get_used_cells():
+		if ground.get_cell_source_id(cell) != forest_atlas_source_id:
+			continue
+		var tile_data := ground.get_cell_tile_data(cell)
+		if not tile_data:
+			continue
+		var variant_name := StringName(str(tile_data.get_custom_data("forest_variant")))
+		if forest_tile_names.is_empty() or forest_tile_names.has(variant_name):
+			matching_cells.append(cell)
+	if matching_cells.is_empty() or forest_tree_count <= 0:
+		push_warning("No GroundArt cells match the selected Forest atlas source and tile names.")
+		return
+	var rng := RandomNumberGenerator.new()
+	if forest_scatter_seed == 0:
+		rng.randomize()
+	else:
+		rng.seed = forest_scatter_seed
+	var scene_owner: Node = world_art.owner if world_art.owner else owner if owner else self
+	var occupied_positions: Array[Vector2] = []
+	for child in world_art.get_children():
+		if child is Node2D:
+			occupied_positions.append((child as Node2D).global_position)
+	var tile_size := Vector2(ground.tile_set.tile_size)
+	var margin := minf(forest_tile_edge_margin, minf(tile_size.x, tile_size.y) * 0.45)
+	var min_spacing_squared := forest_min_tree_spacing * forest_min_tree_spacing
+	var placed := 0
+	var attempt_limit := forest_tree_count * 50
+	for attempt in range(attempt_limit):
+		if placed >= forest_tree_count:
+			break
+		var cell := matching_cells[rng.randi_range(0, matching_cells.size() - 1)]
+		var cell_center := ground.map_to_local(cell)
+		var cell_offset := Vector2(
+			rng.randf_range(-tile_size.x * 0.5 + margin, tile_size.x * 0.5 - margin),
+			rng.randf_range(-tile_size.y * 0.5 + margin, tile_size.y * 0.5 - margin)
+		)
+		var world_position := ground.to_global(cell_center + cell_offset)
+		var too_close := false
+		for existing_position in occupied_positions:
+			if world_position.distance_squared_to(existing_position) < min_spacing_squared:
+				too_close = true
+				break
+		if too_close:
+			continue
+		var tree := forest_tree_scene.instantiate() as Node2D
+		if not tree:
+			continue
+		tree.name = "ForestTree_%02d" % placed
+		tree.set("tree_scale", rng.randf_range(minf(forest_min_tree_scale, forest_max_tree_scale), maxf(forest_min_tree_scale, forest_max_tree_scale)))
+		tree.rotation = deg_to_rad(rng.randf_range(-forest_random_rotation_degrees, forest_random_rotation_degrees))
+		world_art.add_child(tree)
+		tree.owner = scene_owner
+		tree.position = world_art.to_local(world_position)
+		tree.set_meta("forest_scatter_generated", true)
+		occupied_positions.append(world_position)
+		placed += 1
+	if placed > 0:
+		EditorInterface.mark_scene_as_unsaved()
+	print("Scattered %d / %d tree(s) in %s." % [placed, forest_tree_count, name])
+
+func _clear_scattered_forest_trees(mark_unsaved: bool = true) -> void:
+	if not Engine.is_editor_hint():
+		return
+	var world_art := get_node_or_null("WorldArt") as TileMapLayer
+	if not world_art:
+		return
+	var removed := 0
+	for child in world_art.get_children():
+		if child.has_meta("forest_scatter_generated"):
+			world_art.remove_child(child)
+			child.free()
+			removed += 1
+	if removed > 0:
+		if mark_unsaved:
+			EditorInterface.mark_scene_as_unsaved()
+		print("Removed %d scattered tree(s) from %s." % [removed, name])
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSFORM_CHANGED and Engine.is_editor_hint() and snap_to_neighbors and not _snapping:

@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 class_name ConstructionSite
 
@@ -19,14 +20,17 @@ var _last_feedback := ""
 var _visual_instance: Node2D
 
 func _ready() -> void:
-	add_to_group("construction_sites")
 	if not construction_config and not construction_config_path.is_empty():
 		construction_config = load(construction_config_path) as ConstructionConfig
 	if construction_config:
 		_initialize_progress()
 	queue_redraw()
+	if not Engine.is_editor_hint():
+		add_to_group("construction_sites")
 
 func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	var was_nearby := _nearby_player
 	_nearby_player = false
 	if not is_complete():
@@ -141,6 +145,8 @@ func _refresh_stage_visual() -> void:
 func _draw() -> void:
 	var stage := _current_stage()
 	var color := stage.visual_color if stage else Color("5b715e")
+	if Engine.is_editor_hint():
+		color = color.lightened(0.12)
 	draw_rect(Rect2(-54, -22, 108, 130), Color("18232c"), true)
 	draw_rect(Rect2(-48, -16, 96, 118), color, false, 7.0)
 	draw_line(Vector2(-44, 94), Vector2(44, -10), color.lightened(0.2), 6.0)
@@ -149,7 +155,8 @@ func _draw() -> void:
 	draw_circle(deposit_offset, 28, Color("152231dd"))
 	draw_arc(deposit_offset, 28, 0, TAU, 32, Color("d69a55"), 3.0)
 	var requirement_count := stage.requirements.size() if stage else 0
-	var footer_lines := 2 if _nearby_player and not is_complete() else 1 if not _last_feedback.is_empty() else 0
+	var editor_preview := Engine.is_editor_hint()
+	var footer_lines := 2 if (_nearby_player or editor_preview) and not is_complete() else 1 if not _last_feedback.is_empty() else 0
 	var bubble_height := 42.0 + requirement_count * 21.0 + footer_lines * 19.0
 	var bubble := Rect2(deposit_offset + Vector2(-166, -bubble_height - 40.0), Vector2(332, bubble_height))
 	draw_rect(bubble, Color("152231ee"), true)
@@ -169,5 +176,6 @@ func _draw() -> void:
 			draw_string(ThemeDB.fallback_font, bubble.position + Vector2(12, 47 + index * 21), line, HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("ffd166") if deposited >= requirement.quantity else Color("dce4e8"))
 	if not _last_feedback.is_empty():
 		draw_string(ThemeDB.fallback_font, bubble.position + Vector2(12, bubble.size.y - (24.0 if _nearby_player and not is_complete() else 7.0)), _last_feedback, HORIZONTAL_ALIGNMENT_LEFT, 300, 14, Color("a8d5ba"))
-	if _nearby_player and not is_complete():
-		draw_string(ThemeDB.fallback_font, bubble.position + Vector2(12, bubble.size.y - 5.0), prompt_text, HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("ffd166"))
+	if (_nearby_player or editor_preview) and not is_complete():
+		var prompt := "Preview · " + prompt_text if editor_preview else prompt_text
+		draw_string(ThemeDB.fallback_font, bubble.position + Vector2(12, bubble.size.y - 5.0), prompt, HORIZONTAL_ALIGNMENT_LEFT, 300, 15, Color("ffd166"))
