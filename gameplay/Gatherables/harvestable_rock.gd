@@ -13,6 +13,7 @@ signal mined(item_id: StringName, quantity: int)
 var hit_count := 0
 var _nearby_player := false
 var _depleted := false
+var _remaining_yield := 0
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -21,6 +22,7 @@ func _ready() -> void:
 	add_to_group("e_interactables")
 	hits_required = maxi(1, hits_required)
 	stone_quantity = maxi(1, stone_quantity)
+	_remaining_yield = stone_quantity
 	queue_redraw()
 
 func _process(_delta: float) -> void:
@@ -51,16 +53,26 @@ func interact(player: Node) -> bool:
 		queue_redraw()
 		return true
 
-	var drop := ItemDropSpawner.spawn_item_drop(&"stone", stone_quantity, global_position + Vector2(0, 26))
-	if not drop:
+	if not inventory:
 		hit_count = hits_required - 1
-		if inventory:
-			inventory.set_feedback("Could not create stone drop")
 		queue_redraw()
 		return false
+	var collected := inventory.add_item(&"stone", _remaining_yield)
+	if collected <= 0:
+		hit_count = hits_required - 1
+		inventory.set_feedback("Inventory full. Make room to collect Stone.")
+		queue_redraw()
+		return false
+	_remaining_yield -= collected
+	mined.emit(&"stone", collected)
+	if _remaining_yield > 0:
+		hit_count = 0
+		inventory.set_feedback("Collected %d Stone. %d remain; make room and mine again." % [collected, _remaining_yield])
+		queue_redraw()
+		return true
 
 	_depleted = true
-	mined.emit(&"stone", stone_quantity)
+	inventory.set_feedback("Collected %d Stone" % collected)
 	queue_redraw()
 	queue_free()
 	return true

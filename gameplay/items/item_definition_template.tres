@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://i584axpxrco5" path="res://gameplay/item_definition.gd" id="1_item_definition"]
+
+[resource]
+script = ExtResource("1_item_definition")
+item_id = &"new_collectible"
+display_name = "New Collectible"
+description = "Write a short description for this item."
+max_stack_size = 99
+max_carry_quantity = 99
+inventory_icon_scale = 1.0
+world_texture_scale = 1.0
+world_color = Color(0.82, 0.66, 0.38, 1)

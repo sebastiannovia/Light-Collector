@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://i584axpxrco5" path="res://gameplay/item_definition.gd" id="1_item_definition"]
+
+[resource]
+script = ExtResource("1_item_definition")
+item_id = &"forest_mushroom"
+display_name = "Forest Mushroom"
+description = "A sturdy mushroom growing in shady woodland."
+max_stack_size = 50
+max_carry_quantity = 500
+inventory_icon_scale = 1.0
+world_texture_scale = 1.0
+world_color = Color(0.83, 0.58, 0.34, 1)

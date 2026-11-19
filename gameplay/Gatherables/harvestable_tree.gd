@@ -43,6 +43,7 @@ signal mined(item_id: StringName, quantity: int)
 var hit_count := 0
 var _nearby_player := false
 var _depleted := false
+var _remaining_yield := 0
 var _selected_tree_texture: Texture2D
 var _occlusion_material: ShaderMaterial
 var _occluding_player: Node2D
@@ -52,10 +53,12 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		queue_redraw()
 		return
+	z_as_relative = false
 	add_to_group("solid_tree_obstacles")
 	add_to_group("e_interactables")
 	hits_required = maxi(1, hits_required)
 	wood_quantity = maxi(1, wood_quantity)
+	_remaining_yield = wood_quantity
 	_occlusion_material = ShaderMaterial.new()
 	_occlusion_material.shader = TREE_OCCLUSION_SHADER
 	_occlusion_material.set_shader_parameter("fade_enabled", false)
@@ -71,6 +74,15 @@ func blocks_player_motion(from_position: Vector2, to_position: Vector2, player_r
 	var old_distance := from_position.distance_to(collision_center)
 	var new_distance := to_position.distance_to(collision_center)
 	return new_distance < minimum_distance and new_distance < old_distance
+
+func get_visual_half_width() -> float:
+	var widest_texture := 0.0
+	for texture in tree_textures:
+		if texture:
+			widest_texture = maxf(widest_texture, texture.get_width())
+	if widest_texture <= 0.0:
+		widest_texture = 104.0
+	return widest_texture * tree_scale * 0.5
 
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
@@ -92,8 +104,12 @@ func _process(_delta: float) -> void:
 				nearest_player_distance = distance
 				_occluding_player = player
 	var is_occluded := _is_player_behind_tree(_occluding_player)
-	# Trees normally draw with the ground. Raise one only while it must cover a player behind it.
-	z_index = 1 if is_occluded else 0
+	# Match the player's depth sort so a tree behind another tree cannot jump in front of it.
+	var sort_y := global_position.y
+	var map_area := get_parent().get_parent() as MapArea
+	if map_area:
+		sort_y -= map_area.global_position.y
+	z_index = clampi(roundi(sort_y / 8.0), 1, 256)
 	if _occlusion_material:
 		_occlusion_material.set_shader_parameter("fade_enabled", is_occluded)
 		if is_occluded and is_instance_valid(_occluding_player):
@@ -107,14 +123,22 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func _is_player_behind_tree(player: Node2D) -> bool:
-	if not is_instance_valid(player) or player.global_position.y >= global_position.y:
+	if not is_instance_valid(player):
+		return false
+	var player_depth_y := float(player.call("get_depth_sort_y")) if player.has_method("get_depth_sort_y") else player.global_position.y
+	if player_depth_y >= global_position.y:
 		return false
 	var size := _selected_tree_texture.get_size() * tree_scale if _selected_tree_texture else Vector2(110.0, 188.0)
 	var player_local := to_local(player.global_position)
 	var top := texture_offset.y - size.y
-	var left := texture_offset.x - size.x * 0.5
-	var right := texture_offset.x + size.x * 0.5
-	return player_local.y > top + 12.0 and player_local.x >= left - 34.0 and player_local.x <= right + 34.0
+	var player_size := Vector2(player.call("get_visual_size")) if player.has_method("get_visual_size") else Vector2(48.0, 48.0)
+	var player_left := player_local.x - player_size.x * 0.5
+	var player_right := player_local.x + player_size.x * 0.5
+	var player_top := player_local.y - player_size.y * 0.5
+	var player_bottom := player_local.y + player_size.y * 0.5
+	var tree_left := texture_offset.x - size.x * 0.5
+	var tree_right := texture_offset.x + size.x * 0.5
+	return player_bottom > top + 12.0 and player_top < texture_offset.y and player_right >= tree_left - 34.0 and player_left <= tree_right + 34.0
 
 func _choose_random_tree_texture() -> void:
 	_selected_tree_texture = null
@@ -139,16 +163,26 @@ func interact(player: Node) -> bool:
 		queue_redraw()
 		return true
 
-	var drop := ItemDropSpawner.spawn_item_drop(&"wood", wood_quantity, global_position + Vector2(0, 26))
-	if not drop:
+	if not inventory:
 		hit_count = hits_required - 1
-		if inventory:
-			inventory.set_feedback("Could not create wood drop")
 		queue_redraw()
 		return false
+	var collected := inventory.add_item(&"wood", _remaining_yield)
+	if collected <= 0:
+		hit_count = hits_required - 1
+		inventory.set_feedback("Inventory full. Make room to collect Wood.")
+		queue_redraw()
+		return false
+	_remaining_yield -= collected
+	mined.emit(&"wood", collected)
+	if _remaining_yield > 0:
+		hit_count = 0
+		inventory.set_feedback("Collected %d Wood. %d remain; make room and chop again." % [collected, _remaining_yield])
+		queue_redraw()
+		return true
 
 	_depleted = true
-	mined.emit(&"wood", wood_quantity)
+	inventory.set_feedback("Collected %d Wood" % collected)
 	queue_free()
 	return true
 

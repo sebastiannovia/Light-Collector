@@ -276,18 +276,31 @@ func _scatter_forest_trees() -> void:
 	else:
 		rng.seed = forest_scatter_seed
 	var scene_owner: Node = world_art.owner if world_art.owner else owner if owner else self
-	var occupied_positions: Array[Vector2] = []
+	var tree_probe := forest_tree_scene.instantiate() as Node2D
+	var base_tree_half_width := 52.0
+	if tree_probe and tree_probe.has_method("get_visual_half_width"):
+		base_tree_half_width = float(tree_probe.call("get_visual_half_width"))
+	if tree_probe:
+		tree_probe.free()
+	var occupied_positions: Array[Dictionary] = []
 	for child in world_art.get_children():
 		if child is Node2D:
-			occupied_positions.append((child as Node2D).global_position)
+			var occupied_radius := 0.0
+			if child.has_method("get_visual_half_width"):
+				occupied_radius = float(child.call("get_visual_half_width"))
+			occupied_positions.append({
+				"position": (child as Node2D).global_position,
+				"radius": occupied_radius,
+			})
 	var tile_size := Vector2(ground.tile_set.tile_size)
 	var margin := minf(forest_tile_edge_margin, minf(tile_size.x, tile_size.y) * 0.45)
-	var min_spacing_squared := forest_min_tree_spacing * forest_min_tree_spacing
 	var placed := 0
 	var attempt_limit := forest_tree_count * 50
 	for attempt in range(attempt_limit):
 		if placed >= forest_tree_count:
 			break
+		var tree_scale_value := rng.randf_range(minf(forest_min_tree_scale, forest_max_tree_scale), maxf(forest_min_tree_scale, forest_max_tree_scale))
+		var candidate_radius := base_tree_half_width * tree_scale_value
 		var cell := matching_cells[rng.randi_range(0, matching_cells.size() - 1)]
 		var cell_center := ground.map_to_local(cell)
 		var cell_offset := Vector2(
@@ -296,8 +309,9 @@ func _scatter_forest_trees() -> void:
 		)
 		var world_position := ground.to_global(cell_center + cell_offset)
 		var too_close := false
-		for existing_position in occupied_positions:
-			if world_position.distance_squared_to(existing_position) < min_spacing_squared:
+		for occupied in occupied_positions:
+			var required_distance := maxf(forest_min_tree_spacing, candidate_radius + float(occupied["radius"]))
+			if world_position.distance_squared_to(occupied["position"]) < required_distance * required_distance:
 				too_close = true
 				break
 		if too_close:
@@ -306,13 +320,13 @@ func _scatter_forest_trees() -> void:
 		if not tree:
 			continue
 		tree.name = "ForestTree_%02d" % placed
-		tree.set("tree_scale", rng.randf_range(minf(forest_min_tree_scale, forest_max_tree_scale), maxf(forest_min_tree_scale, forest_max_tree_scale)))
+		tree.set("tree_scale", tree_scale_value)
 		tree.rotation = deg_to_rad(rng.randf_range(-forest_random_rotation_degrees, forest_random_rotation_degrees))
 		world_art.add_child(tree)
 		tree.owner = scene_owner
 		tree.position = world_art.to_local(world_position)
 		tree.set_meta("forest_scatter_generated", true)
-		occupied_positions.append(world_position)
+		occupied_positions.append({"position": world_position, "radius": candidate_radius})
 		placed += 1
 	if placed > 0:
 		EditorInterface.mark_scene_as_unsaved()

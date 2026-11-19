@@ -2,14 +2,20 @@ extends Node2D
 
 signal area_changed(area: MapArea)
 signal light_count_changed(count: int)
+signal health_changed(current: float, maximum: float)
+signal sleep_changed(current: float, maximum: float)
 
 const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
-const LIGHT_HUD_SCRIPT = preload("res://light_hud.gd")
+const PLAYER_HUD_SCRIPT = preload("res://gameplay/player_hud.gd")
+const DEFAULT_PLAYER_HUD_STYLE = preload("res://gameplay/player_hud_default.tres")
 const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
-@export_range(0.0, 96.0, 1.0) var tree_collision_radius := 22.0
+@export_range(0.0, 96.0, 1.0) var tree_collision_radius := 28.0
+
+const PLAYER_SIZE := Vector2(110.0, 185.0)
+const PLAYER_FEET_OFFSET := Vector2(0.0, PLAYER_SIZE.y * 0.5)
 
 @export_group("Minimap")
 @export var minimap_enabled := true
@@ -26,10 +32,16 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 @export var minimap_show_unknown_paths := true
 @export var minimap_handwritten_font: Font
 
-@export_group("Light HUD")
-@export var light_hud_visible := true
-@export var light_hud_position := Vector2(28.0, 28.0)
+@export_group("Player Status")
+@export_range(1.0, 1000.0, 1.0) var health_max := 100.0
+@export_range(0.0, 1000.0, 1.0) var health_current := 100.0
+@export_range(1.0, 1000.0, 1.0) var sleep_max := 100.0
+@export_range(0.0, 1000.0, 1.0) var sleep_current := 100.0
 @export_range(0, 999999, 1) var starting_light_count := 0
+
+@export_group("Player HUD")
+@export var player_hud_visible := true
+@export var player_hud_style: PlayerHUDStyle = DEFAULT_PLAYER_HUD_STYLE
 
 @onready var camera: Camera2D = $Camera2D
 @onready var fade: ColorRect = get_node("../TransitionOverlay/Fade")
@@ -38,19 +50,23 @@ var current_area: MapArea
 var transitioning := false
 var minimap_view: Control
 var light_count := 0
-var light_hud: Control
+var player_hud: Control
 
 func _ready() -> void:
+	z_as_relative = false
 	add_to_group("map_player")
 	light_count = starting_light_count
+	health_current = clampf(health_current, 0.0, health_max)
+	sleep_current = clampf(sleep_current, 0.0, sleep_max)
 	current_area = _area_at(global_position)
 	if current_area:
 		_set_active_area(current_area)
 		_set_camera_bounds(current_area)
+	_update_depth_order()
 	if minimap_enabled:
 		call_deferred("_create_minimap")
-	if light_hud_visible:
-		call_deferred("_create_light_hud")
+	if player_hud_visible:
+		call_deferred("_create_player_hud")
 
 func _process(delta: float) -> void:
 	if transitioning or not current_area:
@@ -87,7 +103,21 @@ func _process(delta: float) -> void:
 		destination.y = current_area.global_position.y + current_area.area_size.y - 0.1
 
 	global_position = _resolve_tree_collisions(destination)
+	_update_depth_order()
 	queue_redraw()
+
+func get_depth_sort_y() -> float:
+	return global_position.y + PLAYER_SIZE.y * 0.5
+
+func get_visual_size() -> Vector2:
+	return PLAYER_SIZE
+
+func _update_depth_order() -> void:
+	var sort_y := get_depth_sort_y()
+	var area := current_area if current_area else _area_at(global_position)
+	if area:
+		sort_y -= area.global_position.y
+	z_index = clampi(roundi(sort_y / 8.0), 1, 256)
 
 func _resolve_tree_collisions(destination: Vector2) -> Vector2:
 	if not _tree_blocks_motion(global_position, destination):
@@ -105,8 +135,10 @@ func _resolve_tree_collisions(destination: Vector2) -> Vector2:
 	return global_position
 
 func _tree_blocks_motion(from_position: Vector2, to_position: Vector2) -> bool:
+	var feet_from := from_position + PLAYER_FEET_OFFSET
+	var feet_to := to_position + PLAYER_FEET_OFFSET
 	for tree in get_tree().get_nodes_in_group("solid_tree_obstacles"):
-		if tree.has_method("blocks_player_motion") and tree.call("blocks_player_motion", from_position, to_position, tree_collision_radius):
+		if tree.has_method("blocks_player_motion") and tree.call("blocks_player_motion", feet_from, feet_to, tree_collision_radius):
 			return true
 	return false
 
@@ -120,8 +152,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if inventory:
 			inventory.toggle_ui()
 	elif event.keycode == KEY_E:
-		if _try_interact_with_nearby_object():
-			return
+		_try_interact_with_nearby_object()
+	elif event.keycode == KEY_F:
 		_try_place_path_lights()
 
 func _try_interact_with_nearby_object() -> bool:
@@ -139,14 +171,26 @@ func add_light(amount: int = 1) -> void:
 		return
 	light_count += amount
 	light_count_changed.emit(light_count)
-	if light_hud:
-		light_hud.call("set_count", light_count)
+	if player_hud:
+		player_hud.call("set_lights", light_count)
 
 func set_light_count(count: int) -> void:
 	light_count = maxi(0, count)
 	light_count_changed.emit(light_count)
-	if light_hud:
-		light_hud.call("set_count", light_count)
+	if player_hud:
+		player_hud.call("set_lights", light_count)
+
+func set_health(value: float) -> void:
+	health_current = clampf(value, 0.0, health_max)
+	health_changed.emit(health_current, health_max)
+	if player_hud:
+		player_hud.call("set_health", health_current, health_max)
+
+func set_sleep(value: float) -> void:
+	sleep_current = clampf(value, 0.0, sleep_max)
+	sleep_changed.emit(sleep_current, sleep_max)
+	if player_hud:
+		player_hud.call("set_sleep", sleep_current, sleep_max)
 
 func _try_place_path_lights() -> void:
 	if not current_area:
@@ -286,16 +330,45 @@ func _create_minimap() -> void:
 		"handwritten_font": minimap_handwritten_font,
 	})
 
-func _create_light_hud() -> void:
+func _create_player_hud() -> void:
 	var canvas := CanvasLayer.new()
-	canvas.name = "LightHUDLayer"
+	canvas.name = "PlayerHUDLayer"
 	canvas.layer = 6
 	get_parent().add_child(canvas)
-	light_hud = Control.new()
-	light_hud.name = "LightHUD"
-	light_hud.set_script(LIGHT_HUD_SCRIPT)
-	canvas.add_child(light_hud)
-	light_hud.call("configure", light_count, light_hud_position)
+	player_hud = Control.new()
+	player_hud.name = "PlayerHUD"
+	player_hud.set_script(PLAYER_HUD_SCRIPT)
+	canvas.add_child(player_hud)
+	player_hud.call("configure", player_hud_style, health_current, health_max, sleep_current, sleep_max, light_count)
+	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
+	if inventory and not inventory.item_added.is_connected(_on_inventory_item_added):
+		inventory.item_added.connect(_on_inventory_item_added)
+	var controls_hint := Label.new()
+	controls_hint.name = "ControlsHint"
+	controls_hint.text = "WASD / Arrow Keys: Move   •   E: Interact / Chop   •   F: Place Lights   •   I: Inventory   •   M: Toggle Map"
+	controls_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	controls_hint.offset_left = 20.0
+	controls_hint.offset_top = -46.0
+	controls_hint.offset_right = -20.0
+	controls_hint.offset_bottom = -14.0
+	controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	controls_hint.add_theme_font_size_override("font_size", 16)
+	controls_hint.add_theme_color_override("font_color", Color("f4f0df"))
+	controls_hint.add_theme_color_override("font_outline_color", Color("101923"))
+	controls_hint.add_theme_constant_override("outline_size", 4)
+	controls_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(controls_hint)
+
+func _on_inventory_item_added(item_id: StringName, quantity: int) -> void:
+	if not player_hud:
+		return
+	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
+	var definition := inventory.get_item_definition(item_id) if inventory else null
+	var display_name := definition.display_name if definition and not definition.display_name.is_empty() else String(item_id)
+	var icon := definition.icon if definition and definition.icon else definition.world_texture if definition else null
+	var fallback_color := definition.world_color if definition else Color("d69a55")
+	player_hud.call("notify_item", display_name, quantity, icon, fallback_color)
 
 func _entry_position(area: MapArea, exit_direction: String, crossing_point: Vector2) -> Vector2:
 	match exit_direction:
@@ -333,7 +406,6 @@ func _set_camera_bounds(area: MapArea) -> void:
 	camera.limit_bottom = int(area.global_position.y + area.area_size.y)
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 24.0, Color("ffd166"))
-	draw_arc(Vector2.ZERO, 30.0, 0.0, TAU, 48, Color("101923"), 4.0)
-	draw_line(Vector2(-10, 0), Vector2(10, 0), Color("101923"), 3.0)
-	draw_line(Vector2(0, -10), Vector2(0, 10), Color("101923"), 3.0)
+	var player_rect := Rect2(-PLAYER_SIZE * 0.5, PLAYER_SIZE)
+	draw_rect(player_rect, Color("ffd166"), true)
+	draw_rect(player_rect, Color("101923"), false, 4.0)
