@@ -1,0 +1,101 @@
+[gd_scene format=3 uid="uid://d3a2kk70nan8i"]
+
+[ext_resource type="Script" uid="uid://vij5sms3nv28" path="res://gameplay/pause_menu/pause_menu.gd" id="1_uu5l7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sry7o"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.24, 0.24, 0.24, 0.6)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mjaap"]
+bg_color = Color(0.45500666, 0.6817478, 0.6349644, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.24, 0.24, 0.24, 0.6)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3ageh"]
+bg_color = Color(0.38, 0.38, 0.38, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.24, 0.24, 0.24, 0.6)
+shadow_size = 10
+
+[node name="PauseMenu" type="Control" unique_id=407612632]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_uu5l7")
+
+[node name="Panel" type="Panel" parent="." unique_id=804427110]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=854010555]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -289.0
+offset_top = -123.0
+offset_right = 313.0
+offset_bottom = 169.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="Button_continue" type="Button" parent="VBoxContainer" unique_id=1027048464]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_sry7o")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mjaap")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3ageh")
+text = "Continue"
+
+[node name="Button_exit" type="Button" parent="VBoxContainer" unique_id=208122445]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_sry7o")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mjaap")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3ageh")
+text = "Exit"
+
+[node name="Label" type="Label" parent="." unique_id=413822938]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -104.5
+offset_top = -218.0
+offset_right = 104.5
+offset_bottom = -176.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 30
+text = "Light Collector"
+
+[connection signal="pressed" from="VBoxContainer/Button_continue" to="." method="_on_button_continue_pressed"]
+[connection signal="pressed" from="VBoxContainer/Button_exit" to="." method="_on_button_exit_pressed"]

@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://rqlybwm44o3m"]
 
 [ext_resource type="Script" uid="uid://dd4oyw6syhhvq" path="res://map_area.gd" id="1_area"]
+[ext_resource type="Script" uid="uid://uuvmbdqdao0s" path="res://map_layout_template.gd" id="1_dldcj"]
 [ext_resource type="TileSet" uid="uid://dvkc5vo4yeadp" path="res://MapTiles.tres" id="3_tiles"]
 [ext_resource type="Script" uid="uid://duuh6yrs0nu3r" path="res://map_path_guides.gd" id="4_guides"]
 [ext_resource type="TileSet" uid="uid://50a0mf1ud86" path="res://Tiles/Forest Tiles/ForestMapTiles.tres" id="4_o2kl1"]
@@ -32,6 +33,7 @@ stages = Array[ExtResource("10_dldcj")]([SubResource("Resource_4g2b3")])
 metadata/_custom_type_script = "uid://cqmtsrdte3b6l"
 
 [node name="MapLayoutTemplate" type="Node2D" unique_id=1163969500]
+script = ExtResource("1_dldcj")
 
 [node name="MapAreas" type="Node2D" parent="." unique_id=990185703]
 

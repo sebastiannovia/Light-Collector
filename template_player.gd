@@ -12,6 +12,7 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 const PLAYER_FRONT_TEXTURE = preload("res://Assets/Player/Front.png")
 const PLAYER_BACK_TEXTURE = preload("res://Assets/Player/Back.png")
 const PLAYER_SIDE_TEXTURE = preload("res://Assets/Player/Side.png")
+const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
@@ -80,6 +81,11 @@ var _damage_invulnerability_left := 0.0
 var _sword_hit_shape := CircleShape2D.new()
 
 func _ready() -> void:
+	var pause_layer := CanvasLayer.new()
+	pause_layer.name = "PauseMenuLayer"
+	pause_layer.layer = 20
+	get_tree().root.add_child(pause_layer)
+	pause_layer.add_child(PAUSE_MENU_SCENE.instantiate())
 	z_as_relative = false
 	if legacy_hitbox:
 		legacy_hitbox.monitoring = false
