@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://dxvj5k2igonqq"]
+
+[ext_resource type="Script" uid="uid://i584axpxrco5" path="res://gameplay/item_definition.gd" id="1_sxhtq"]
+
+[resource]
+script = ExtResource("1_sxhtq")
+item_id = &"tablet_4"
+display_name = "Tablet 4"
+description = "Tablet 4 description"
+max_stack_size = 1
+max_carry_quantity = 1
+world_color = Color(0.82, 0.66, 0.38, 1)
