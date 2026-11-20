@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://bqqj6cqav77ir"]
 
-[ext_resource type="Script" uid="uid://drx41yvlar6fy" path="res://template_player.gd" id="1_k7pdy"]
-[ext_resource type="Script" uid="uid://op6grnsnlo2i" path="res://gameplay/player_inventory.gd" id="2_rlrxx"]
+[ext_resource type="Script" path="res://template_player.gd" id="1_k7pdy"]
+[ext_resource type="Script" path="res://gameplay/player_inventory.gd" id="2_rlrxx"]
+[ext_resource type="Texture2D" path="res://Assets/Player/Front.png" id="3_dd34u"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rlrxx"]
 size = Vector2(58, 42)
@@ -31,5 +32,9 @@ collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="hitbox" unique_id=364161573]
 shape = SubResource("RectangleShape2D_mhe6t")
+
+[node name="PlayerSprite" type="Sprite2D" parent="." unique_id=227745226]
+z_index = -1
+texture = ExtResource("3_dd34u")
 
 [connection signal="body_entered" from="hitbox" to="." method="_on_hitbox_body_entered"]

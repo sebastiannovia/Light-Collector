@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/Monsters/basic_monster.gd" id="1_j5scw"]
+[ext_resource type="Texture2D" path="res://Assets/Monsters/jumper_sprite.png" id="2_ij78q"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j5scw"]
+size = Vector2(70, 65)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_iungk"]
+radius = 320.0
+
+[node name="monster_jumper" type="CharacterBody2D" unique_id=1878941016]
+collision_layer = 2
+script = ExtResource("1_j5scw")
+display_name = "Jumper"
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=997570214]
+texture = ExtResource("2_ij78q")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1936898354]
+shape = SubResource("RectangleShape2D_j5scw")
+
+[node name="Sight" type="Area2D" parent="." unique_id=1733059442]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Sight" unique_id=1835929153]
+shape = SubResource("CircleShape2D_iungk")

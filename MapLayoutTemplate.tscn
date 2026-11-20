@@ -11,7 +11,9 @@
 [ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="10_dldcj"]
 [ext_resource type="PackedScene" uid="uid://bqqj6cqav77ir" path="res://gameplay/Player/Player.tscn" id="11_qb0cc"]
 [ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="11_twa6h"]
-[ext_resource type="PackedScene" uid="uid://bq47rsekv5irv" path="res://monster images/monster1/monster_1.tscn" id="12_dldcj"]
+[ext_resource type="PackedScene" path="res://gameplay/Monsters/Spinner.tscn" id="12_twa6h"]
+[ext_resource type="PackedScene" path="res://gameplay/Monsters/Jumper.tscn" id="13_pdi3m"]
+[ext_resource type="PackedScene" path="res://gameplay/Monsters/Charger.tscn" id="14_cjl5k"]
 
 [sub_resource type="Resource" id="Resource_1hjth"]
 script = ExtResource("11_twa6h")
@@ -4274,6 +4276,11 @@ definition_paths = Array[String](["res://gameplay/items/wood.tres", "res://gamep
 [node name="Player" parent="." unique_id=163405111 instance=ExtResource("11_qb0cc")]
 position = Vector2(1950, 1120)
 
-[node name="monster1" parent="." unique_id=118134316 instance=ExtResource("12_dldcj")]
-position = Vector2(2513, 932)
-scale = Vector2(3, 3)
+[node name="monster_spinner" parent="." unique_id=2076468854 instance=ExtResource("12_twa6h")]
+position = Vector2(2248, 904)
+
+[node name="monster_jumper" parent="." unique_id=1878941016 instance=ExtResource("13_pdi3m")]
+position = Vector2(2637, 907)
+
+[node name="monster_charger" parent="." unique_id=471776626 instance=ExtResource("14_cjl5k")]
+position = Vector2(2373, 500)

@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/Monsters/basic_monster.gd" id="1_caur1"]
+[ext_resource type="Texture2D" path="res://Assets/Monsters/charger_sprite.png" id="2_e4hog"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_caur1"]
+size = Vector2(265, 210)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_6dgeb"]
+radius = 320.0
+
+[node name="monster_charger" type="CharacterBody2D" unique_id=471776626]
+collision_layer = 2
+script = ExtResource("1_caur1")
+display_name = "Charger"
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=593476529]
+texture = ExtResource("2_e4hog")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1460841897]
+shape = SubResource("RectangleShape2D_caur1")
+
+[node name="Sight" type="Area2D" parent="." unique_id=775922258]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Sight" unique_id=1027942765]
+shape = SubResource("CircleShape2D_6dgeb")

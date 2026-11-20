@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/Monsters/basic_monster.gd" id="1_rmd0v"]
+[ext_resource type="Texture2D" path="res://Assets/Monsters/spinner_sprite.png" id="2_vhdf1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rmd0v"]
+size = Vector2(170, 350)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_m8kcv"]
+radius = 320.0
+
+[node name="monster_spinner" type="CharacterBody2D" unique_id=2076468854]
+collision_layer = 2
+script = ExtResource("1_rmd0v")
+display_name = "Spinner"
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1722079138]
+texture = ExtResource("2_vhdf1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=491381444]
+shape = SubResource("RectangleShape2D_rmd0v")
+
+[node name="Sight" type="Area2D" parent="." unique_id=682893630]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Sight" unique_id=828315603]
+shape = SubResource("CircleShape2D_m8kcv")

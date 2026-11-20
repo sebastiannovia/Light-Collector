@@ -9,6 +9,9 @@ const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
 const PLAYER_HUD_SCRIPT = preload("res://gameplay/player_hud.gd")
 const DEFAULT_PLAYER_HUD_STYLE = preload("res://gameplay/player_hud_default.tres")
 const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
+const PLAYER_FRONT_TEXTURE = preload("res://Assets/Player/Front.png")
+const PLAYER_BACK_TEXTURE = preload("res://Assets/Player/Back.png")
+const PLAYER_SIDE_TEXTURE = preload("res://Assets/Player/Side.png")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
@@ -58,6 +61,7 @@ const PLAYER_FEET_OFFSET := Vector2(0.0, PLAYER_SIZE.y * 0.5)
 @onready var camera: Camera2D = $Camera2D
 @onready var fade: ColorRect = get_node("../TransitionOverlay/Fade")
 @onready var legacy_hitbox: Area2D = get_node_or_null("hitbox")
+@onready var player_sprite: Sprite2D = $PlayerSprite
 
 var current_area: MapArea
 var transitioning := false
@@ -81,6 +85,7 @@ func _ready() -> void:
 		legacy_hitbox.monitoring = false
 		legacy_hitbox.monitorable = false
 	_sword_hit_shape.radius = 30.0
+	_update_player_sprite()
 	add_to_group("map_player")
 	light_count = starting_light_count
 	health_current = clampf(health_current, 0.0, health_max)
@@ -108,6 +113,7 @@ func _process(delta: float) -> void:
 	var direction := Vector2(horizontal, vertical).normalized()
 	if not direction.is_zero_approx():
 		facing_direction = direction
+		_update_player_sprite()
 	var movement := direction * move_speed
 	if _dash_time_left > 0.0:
 		movement = _dash_direction * dash_speed
@@ -455,10 +461,17 @@ func _set_camera_bounds(area: MapArea) -> void:
 	camera.limit_bottom = int(area.global_position.y + area.area_size.y)
 
 func _draw() -> void:
-	var player_rect := Rect2(-PLAYER_SIZE * 0.5, PLAYER_SIZE)
-	draw_rect(player_rect, Color("ffd166"), true)
-	draw_rect(player_rect, Color("101923"), false, 4.0)
 	_draw_sword_swing()
+
+func _update_player_sprite() -> void:
+	if not player_sprite:
+		return
+	if absf(facing_direction.x) > absf(facing_direction.y):
+		player_sprite.texture = PLAYER_SIDE_TEXTURE
+		player_sprite.flip_h = facing_direction.x < 0.0
+	else:
+		player_sprite.flip_h = false
+		player_sprite.texture = PLAYER_BACK_TEXTURE if facing_direction.y < 0.0 else PLAYER_FRONT_TEXTURE
 
 
 func attack() -> void:
