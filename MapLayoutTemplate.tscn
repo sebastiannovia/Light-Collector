@@ -1,17 +1,17 @@
 [gd_scene format=4 uid="uid://rqlybwm44o3m"]
 
 [ext_resource type="Script" uid="uid://dd4oyw6syhhvq" path="res://map_area.gd" id="1_area"]
-[ext_resource type="Script" uid="uid://drx41yvlar6fy" path="res://template_player.gd" id="2_player"]
 [ext_resource type="TileSet" uid="uid://dvkc5vo4yeadp" path="res://MapTiles.tres" id="3_tiles"]
 [ext_resource type="Script" uid="uid://duuh6yrs0nu3r" path="res://map_path_guides.gd" id="4_guides"]
 [ext_resource type="TileSet" uid="uid://50a0mf1ud86" path="res://Tiles/Forest Tiles/ForestMapTiles.tres" id="4_o2kl1"]
-[ext_resource type="Script" uid="uid://op6grnsnlo2i" path="res://gameplay/player_inventory.gd" id="6_iq43o"]
 [ext_resource type="Script" uid="uid://nqw440if4rn0" path="res://gameplay/item_database.gd" id="7_qb0cc"]
 [ext_resource type="PackedScene" uid="uid://bxafdhqghabxr" path="res://gameplay/construction_site.tscn" id="8_iq43o"]
 [ext_resource type="PackedScene" uid="uid://li37js7hxtwx" path="res://gameplay/Gatherables/harvestable_tree.tscn" id="9_cjl5k"]
 [ext_resource type="Script" uid="uid://cqmtsrdte3b6l" path="res://gameplay/construction_config.gd" id="9_qb0cc"]
 [ext_resource type="Script" uid="uid://cl7emwpo77rs" path="res://gameplay/construction_stage.gd" id="10_dldcj"]
+[ext_resource type="PackedScene" uid="uid://bqqj6cqav77ir" path="res://gameplay/Player/Player.tscn" id="11_qb0cc"]
 [ext_resource type="Script" uid="uid://cdfpm24jkc6ju" path="res://gameplay/item_requirement.gd" id="11_twa6h"]
+[ext_resource type="PackedScene" uid="uid://bq47rsekv5irv" path="res://monster images/monster1/monster_1.tscn" id="12_dldcj"]
 
 [sub_resource type="Resource" id="Resource_1hjth"]
 script = ExtResource("11_twa6h")
@@ -37,13 +37,6 @@ metadata/_custom_type_script = "uid://cqmtsrdte3b6l"
 script = ExtResource("1_area")
 area_label = "Main Base"
 minimap_color = Color(0.9798991, 0.23298451, 0, 1)
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 4
 path_north = true
 path_east = true
 path_south = true
@@ -691,13 +684,6 @@ position = Vector2(-3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 3
 path_north = true
 path_east = true
 path_south = true
@@ -1323,13 +1309,6 @@ position = Vector2(3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 9
 path_east = true
 path_south = true
 path_west = true
@@ -1981,7 +1960,6 @@ position = Vector2(7680, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2 Entry"
 minimap_color = Color(0.5173793, 0.52360475, 0.5552469, 1)
-forest_tree_scene = null
 path_east = true
 path_west = true
 
@@ -2002,7 +1980,6 @@ position = Vector2(11520, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_1"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_west = true
@@ -2024,7 +2001,6 @@ position = Vector2(15360, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_4"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 2_4" unique_id=1141644942]
@@ -2044,7 +2020,6 @@ position = Vector2(11520, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_south = true
 path_west = true
 
@@ -2065,7 +2040,6 @@ position = Vector2(7680, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_east = true
 path_south = true
 path_west = true
@@ -2087,7 +2061,6 @@ position = Vector2(-7680, -4320)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_north = true
 path_south = true
 
@@ -2108,7 +2081,6 @@ position = Vector2(-7680, -6480)
 script = ExtResource("1_area")
 area_label = "Cave 3_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
-forest_tree_scene = null
 path_south = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 3_2" unique_id=741906695]
@@ -2128,13 +2100,6 @@ position = Vector2(0, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 14
 path_north = true
 path_east = true
 path_south = true
@@ -2787,7 +2752,6 @@ position = Vector2(3840, -2160)
 script = ExtResource("1_area")
 area_label = "Resin"
 minimap_color = Color(0.70962167, 0.54073066, 0.09971144, 1)
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -2811,13 +2775,6 @@ script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
 floor_saturation = 1.5
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 21
 path_north = true
 path_east = true
 path_south = true
@@ -3469,7 +3426,6 @@ script = ExtResource("4_guides")
 position = Vector2(0, 4320)
 script = ExtResource("1_area")
 area_label = "Bridge"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -3491,7 +3447,6 @@ script = ExtResource("4_guides")
 position = Vector2(0, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -3513,7 +3468,6 @@ script = ExtResource("4_guides")
 position = Vector2(3840, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -3536,7 +3490,6 @@ position = Vector2(7680, 5400)
 script = ExtResource("1_area")
 area_label = "Settlement"
 area_size = Vector2(7680, 4320)
-forest_tree_scene = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Settlement1" unique_id=1361338019]
@@ -3556,7 +3509,6 @@ position = Vector2(-3840, -8640)
 script = ExtResource("1_area")
 area_label = "Boss Cave"
 area_size = Vector2(11520, 6480)
-forest_tree_scene = null
 path_south = true
 south_path_tiles = Array[int]([7, 37])
 
@@ -3577,13 +3529,6 @@ position = Vector2(-11520, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
-forest_tree_count = 70
-forest_min_tree_spacing = 288.0
-forest_tile_edge_margin = 8.0
-forest_min_tree_scale = 0.7999999999999999
-forest_max_tree_scale = 1.25
-forest_random_rotation_degrees = 0.0
-forest_scatter_seed = 21
 path_north = true
 path_east = true
 path_south = true
@@ -4226,7 +4171,6 @@ script = ExtResource("4_guides")
 position = Vector2(-11520, 0)
 script = ExtResource("1_area")
 area_label = "Start"
-forest_tree_scene = null
 path_east = true
 path_west = true
 
@@ -4246,7 +4190,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, -2160)
 script = ExtResource("1_area")
 area_label = "Waterfall"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -4268,7 +4211,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 0)
 script = ExtResource("1_area")
 area_label = "River"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -4290,7 +4232,6 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 2160)
 script = ExtResource("1_area")
 area_label = "River"
-forest_tree_scene = null
 path_north = true
 path_east = true
 path_south = true
@@ -4312,7 +4253,6 @@ position = Vector2(-3840, 2160)
 script = ExtResource("1_area")
 area_label = "Lake"
 area_size = Vector2(11520, 2160)
-forest_tree_scene = null
 path_north = true
 north_path_tiles = Array[int]([7, 37])
 path_east = true
@@ -4331,21 +4271,6 @@ tile_set = ExtResource("3_tiles")
 z_index = 10
 script = ExtResource("4_guides")
 
-[node name="Player" type="Node2D" parent="." unique_id=1542991356]
-position = Vector2(168, 1125)
-script = ExtResource("2_player")
-minimap_map_scale = 0.4
-starting_light_count = 50
-
-[node name="Camera2D" type="Camera2D" parent="Player" unique_id=1267991270]
-zoom = Vector2(0.8, 0.8)
-position_smoothing_enabled = true
-editor_draw_limits = true
-
-[node name="PlayerInventory" type="Node" parent="Player" unique_id=1607869996]
-script = ExtResource("6_iq43o")
-item_database_path = NodePath("../../ItemDatabase")
-
 [node name="TransitionOverlay" type="CanvasLayer" parent="." unique_id=1070179766]
 layer = 10
 
@@ -4362,3 +4287,10 @@ color = Color(0, 0, 0, 1)
 [node name="ItemDatabase" type="Node" parent="." unique_id=310480571]
 script = ExtResource("7_qb0cc")
 definition_paths = Array[String](["res://gameplay/items/wood.tres", "res://gameplay/items/stone.tres", "res://gameplay/items/iron.tres"])
+
+[node name="Player" parent="." unique_id=163405111 instance=ExtResource("11_qb0cc")]
+position = Vector2(1950, 1120)
+
+[node name="monster1" parent="." unique_id=118134316 instance=ExtResource("12_dldcj")]
+position = Vector2(2513, 932)
+scale = Vector2(3, 3)

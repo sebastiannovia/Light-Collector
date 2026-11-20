@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://bqqj6cqav77ir"]
+
+[ext_resource type="Script" uid="uid://drx41yvlar6fy" path="res://template_player.gd" id="1_k7pdy"]
+[ext_resource type="Script" uid="uid://op6grnsnlo2i" path="res://gameplay/player_inventory.gd" id="2_rlrxx"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nglou"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mhe6t"]
+size = Vector2(15, 14)
+
+[node name="Player" type="CharacterBody2D" unique_id=163405111]
+script = ExtResource("1_k7pdy")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1667872730]
+zoom = Vector2(0.8, 0.8)
+position_smoothing_enabled = true
+editor_draw_limits = true
+
+[node name="PlayerInventory" type="Node" parent="." unique_id=935282416]
+script = ExtResource("2_rlrxx")
+item_database_path = NodePath("../../ItemDatabase")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1286508455]
+shape = SubResource("RectangleShape2D_nglou")
+
+[node name="hitbox" type="Area2D" parent="." unique_id=1966073848]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="hitbox" unique_id=364161573]
+shape = SubResource("RectangleShape2D_mhe6t")
+
+[connection signal="body_entered" from="hitbox" to="." method="_on_hitbox_body_entered"]

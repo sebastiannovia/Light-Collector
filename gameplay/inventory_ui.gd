@@ -56,7 +56,7 @@ func _draw() -> void:
 			if filled:
 				var definition := inventory.get_item_definition(slots[index].item_id)
 				if definition and definition.icon:
-					draw_texture_rect(definition.icon, _item_icon_rect(origin, definition), false)
+					draw_texture_rect(definition.icon, Rect2(origin + Vector2(12, 8), Vector2(40, 40)), false)
 				elif definition:
 					draw_circle(origin + SLOT_SIZE * 0.5, 13.0, definition.world_color)
 				draw_string(ThemeDB.fallback_font, origin + Vector2(4, 58), str(slots[index].quantity), HORIZONTAL_ALIGNMENT_RIGHT, 56, 14, TEXT_COLOR)
@@ -167,15 +167,10 @@ func _draw_dragged_item(slots: Array[Dictionary]) -> void:
 	draw_style_box(ghost_style, Rect2(origin, SLOT_SIZE))
 	var definition := inventory.get_item_definition(stack.item_id)
 	if definition and definition.icon:
-		draw_texture_rect(definition.icon, _item_icon_rect(origin, definition), false)
+		draw_texture_rect(definition.icon, Rect2(origin + Vector2(12, 8), Vector2(40, 40)), false)
 	elif definition:
 		draw_circle(origin + SLOT_SIZE * 0.5, 13.0, definition.world_color)
 	draw_string(ThemeDB.fallback_font, origin + Vector2(4, 58), str(stack.quantity), HORIZONTAL_ALIGNMENT_RIGHT, 56, 14, TEXT_COLOR)
-
-func _item_icon_rect(origin: Vector2, definition: ItemDefinition) -> Rect2:
-	var icon_size := Vector2(40.0, 40.0) * definition.inventory_icon_scale
-	var icon_center := origin + Vector2(32.0, 28.0)
-	return Rect2(icon_center - icon_size * 0.5, icon_size)
 
 func _wrap_description(text: String, max_characters: int) -> Array[String]:
 	var result: Array[String] = []
