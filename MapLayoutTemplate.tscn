@@ -536,15 +536,6 @@ trunk_collision_radius = 42.0
 trunk_collision_offset = Vector2(0, 0)
 metadata/forest_scatter_generated = true
 
-[node name="ForestTree_55" parent="MapAreas/Main Base/WorldArt" unique_id=1564942627 instance=ExtResource("9_cjl5k")]
-position = Vector2(2061.611, 308.01257)
-tree_scale = 0.93285483
-occlusion_radius = 82.0
-occlusion_edge_softness = 26.0
-trunk_collision_radius = 42.0
-trunk_collision_offset = Vector2(0, 0)
-metadata/forest_scatter_generated = true
-
 [node name="ForestTree_56" parent="MapAreas/Main Base/WorldArt" unique_id=539759398 instance=ExtResource("9_cjl5k")]
 position = Vector2(878.6777, -113.87302)
 tree_scale = 1.0178716
@@ -566,15 +557,6 @@ metadata/forest_scatter_generated = true
 [node name="ForestTree_58" parent="MapAreas/Main Base/WorldArt" unique_id=657460947 instance=ExtResource("9_cjl5k")]
 position = Vector2(2439.5344, 14.417038)
 tree_scale = 1.1196325
-occlusion_radius = 82.0
-occlusion_edge_softness = 26.0
-trunk_collision_radius = 42.0
-trunk_collision_offset = Vector2(0, 0)
-metadata/forest_scatter_generated = true
-
-[node name="ForestTree_59" parent="MapAreas/Main Base/WorldArt" unique_id=1871436330 instance=ExtResource("9_cjl5k")]
-position = Vector2(1751.3214, 975.9988)
-tree_scale = 1.2179029
 occlusion_radius = 82.0
 occlusion_edge_softness = 26.0
 trunk_collision_radius = 42.0
@@ -4273,6 +4255,7 @@ script = ExtResource("4_guides")
 
 [node name="TransitionOverlay" type="CanvasLayer" parent="." unique_id=1070179766]
 layer = 10
+visible = false
 
 [node name="Fade" type="ColorRect" parent="TransitionOverlay" unique_id=1087145682]
 modulate = Color(1, 1, 1, 0)

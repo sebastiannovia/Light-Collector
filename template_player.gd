@@ -2,13 +2,31 @@ extends Node2D
 
 signal area_changed(area: MapArea)
 signal light_count_changed(count: int)
+signal health_changed(current: float, maximum: float)
+signal sleep_changed(current: float, maximum: float)
 
 const MINIMAP_SCRIPT = preload("res://minimap_control.gd")
-const LIGHT_HUD_SCRIPT = preload("res://light_hud.gd")
+const PLAYER_HUD_SCRIPT = preload("res://gameplay/player_hud.gd")
+const DEFAULT_PLAYER_HUD_STYLE = preload("res://gameplay/player_hud_default.tres")
 const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 
 @export var move_speed := 420.0
 @export var transition_duration := 0.25
+@export_range(0.0, 96.0, 1.0) var tree_collision_radius := 28.0
+
+@export_group("Combat")
+@export_range(1, 1000, 1) var attack_damage := 80
+@export_range(24.0, 180.0, 1.0) var attack_reach := 104.0
+@export_range(30.0, 180.0, 1.0) var attack_arc_degrees := 110.0
+@export_range(0.05, 1.0, 0.01) var attack_duration := 0.30
+
+@export_group("Dash")
+@export_range(1.0, 1200.0, 1.0) var dash_speed := 900.0
+@export_range(0.05, 0.5, 0.01) var dash_duration := 0.14
+@export_range(0.0, 3.0, 0.05) var dash_cooldown := 0.55
+
+const PLAYER_SIZE := Vector2(110.0, 185.0)
+const PLAYER_FEET_OFFSET := Vector2(0.0, PLAYER_SIZE.y * 0.5)
 
 @export_group("Minimap")
 @export var minimap_enabled := true
@@ -25,56 +43,75 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 @export var minimap_show_unknown_paths := true
 @export var minimap_handwritten_font: Font
 
-@export_group("Light HUD")
-@export var light_hud_visible := true
-@export var light_hud_position := Vector2(28.0, 28.0)
+@export_group("Player Status")
+@export_range(1.0, 1000.0, 1.0) var health_max := 100.0
+@export_range(0.0, 1000.0, 1.0) var health_current := 100.0
+@export_range(1.0, 1000.0, 1.0) var sleep_max := 100.0
+@export_range(0.0, 1000.0, 1.0) var sleep_current := 100.0
+@export_range(0.0, 3.0, 0.05) var damage_invulnerability_duration := 0.65
 @export_range(0, 999999, 1) var starting_light_count := 0
+
+@export_group("Player HUD")
+@export var player_hud_visible := true
+@export var player_hud_style: PlayerHUDStyle = DEFAULT_PLAYER_HUD_STYLE
 
 @onready var camera: Camera2D = $Camera2D
 @onready var fade: ColorRect = get_node("../TransitionOverlay/Fade")
-@onready var hitbox: Area2D = $hitbox
+@onready var legacy_hitbox: Area2D = get_node_or_null("hitbox")
 
 var current_area: MapArea
 var transitioning := false
 var minimap_view: Control
 var light_count := 0
-var light_hud: Control
-var hitbox_offset: Vector2
-var is_attacking: bool = false
-var strength: int = 80
+var player_hud: Control
+var is_attacking := false
+var _hit_targets: Dictionary = {}
+var facing_direction := Vector2.DOWN
+var _swing_direction := Vector2.DOWN
+var _swing_progress := -1.0
+var _dash_direction := Vector2.DOWN
+var _dash_time_left := 0.0
+var _dash_cooldown_left := 0.0
+var _damage_invulnerability_left := 0.0
+var _sword_hit_shape := CircleShape2D.new()
 
 func _ready() -> void:
-		
+	z_as_relative = false
+	if legacy_hitbox:
+		legacy_hitbox.monitoring = false
+		legacy_hitbox.monitorable = false
+	_sword_hit_shape.radius = 30.0
 	add_to_group("map_player")
 	light_count = starting_light_count
+	health_current = clampf(health_current, 0.0, health_max)
+	sleep_current = clampf(sleep_current, 0.0, sleep_max)
 	current_area = _area_at(global_position)
 	if current_area:
 		_set_active_area(current_area)
 		_set_camera_bounds(current_area)
+	_update_depth_order()
 	if minimap_enabled:
 		call_deferred("_create_minimap")
-	if light_hud_visible:
-		call_deferred("_create_light_hud")
-		
-		
+	if player_hud_visible:
+		call_deferred("_create_player_hud")
 
 func _process(delta: float) -> void:
-	
-	#hitbox_offset = hitbox.position
-	if not Input.is_action_pressed("attack"):
-		is_attacking = false
-		hitbox.monitoring = false
-	
-	if Input.is_action_just_pressed("attack"):	
+	if Input.is_action_just_pressed("attack"):
 		attack()
-	
-		
+	_dash_cooldown_left = maxf(0.0, _dash_cooldown_left - delta)
+	_dash_time_left = maxf(0.0, _dash_time_left - delta)
+	_damage_invulnerability_left = maxf(0.0, _damage_invulnerability_left - delta)
 	if transitioning or not current_area:
 		return
 	var horizontal := int(Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D)) - int(Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A))
 	var vertical := int(Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S)) - int(Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W))
 	var direction := Vector2(horizontal, vertical).normalized()
-	var destination := global_position + direction * move_speed * delta
+	if not direction.is_zero_approx():
+		facing_direction = direction
+	var movement := direction * move_speed
+	if _dash_time_left > 0.0:
+		movement = _dash_direction * dash_speed
+	var destination := global_position + movement * delta
 
 	if destination.x < current_area.global_position.x:
 		var neighbor := _neighbor_for_exit(current_area, "west", destination)
@@ -102,48 +139,64 @@ func _process(delta: float) -> void:
 			return
 		destination.y = current_area.global_position.y + current_area.area_size.y - 0.1
 
-	global_position = destination
+	global_position = _resolve_tree_collisions(destination)
+	_update_depth_order()
 	queue_redraw()
-	
-	
-func attack() -> void:
 
-	is_attacking = true
-	hitbox.monitoring = true
-	await get_tree().physics_frame
+func _physics_process(_delta: float) -> void:
+	if is_attacking:
+		_apply_sword_hit()
 
-	for body in hitbox.get_overlapping_bodies():
-		_on_hitbox_body_entered(body)
-		
-		
+func get_depth_sort_y() -> float:
+	return global_position.y + PLAYER_SIZE.y * 0.5
 
-# function to rotate hitbox - add to character rotation later	
-func update_hitbox_offset() -> void: 
-	var x := hitbox_offset.x
-	var y := hitbox_offset.y
-	
-	match global_position:
-		Vector2.LEFT:
-			hitbox.position = Vector2(-x, y) 
-		Vector2.RIGHT:
-			hitbox.position = Vector2(x, y) 
-		Vector2.UP:
-			hitbox.position = Vector2(y, -x) 
-		Vector2.DOWN:
-			hitbox.position = Vector2(y, x) 
-	
+func get_visual_size() -> Vector2:
+	return PLAYER_SIZE
+
+func _update_depth_order() -> void:
+	var sort_y := get_depth_sort_y()
+	var area := current_area if current_area else _area_at(global_position)
+	if area:
+		sort_y -= area.global_position.y
+	z_index = clampi(roundi(sort_y / 8.0), 1, 256)
+
+func _resolve_tree_collisions(destination: Vector2) -> Vector2:
+	if not _tree_blocks_motion(global_position, destination):
+		return destination
+	var horizontal_step := Vector2(destination.x, global_position.y)
+	var vertical_step := Vector2(global_position.x, destination.y)
+	var horizontal_blocked := _tree_blocks_motion(global_position, horizontal_step)
+	var vertical_blocked := _tree_blocks_motion(global_position, vertical_step)
+	if not horizontal_blocked and not vertical_blocked:
+		return horizontal_step if absf(destination.x - global_position.x) >= absf(destination.y - global_position.y) else vertical_step
+	if not horizontal_blocked:
+		return horizontal_step
+	if not vertical_blocked:
+		return vertical_step
+	return global_position
+
+func _tree_blocks_motion(from_position: Vector2, to_position: Vector2) -> bool:
+	var feet_from := from_position + PLAYER_FEET_OFFSET
+	var feet_to := to_position + PLAYER_FEET_OFFSET
+	for tree in get_tree().get_nodes_in_group("solid_tree_obstacles"):
+		if tree.has_method("blocks_player_motion") and tree.call("blocks_player_motion", feet_from, feet_to, tree_collision_radius):
+			return true
+	return false
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
-	if event.keycode == KEY_M and minimap_view:
+	if event.keycode == KEY_SHIFT:
+		_start_dash()
+	elif event.keycode == KEY_M and minimap_view:
 		minimap_view.visible = not minimap_view.visible
 	elif event.keycode == KEY_I:
 		var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
 		if inventory:
 			inventory.toggle_ui()
 	elif event.keycode == KEY_E:
-		if _try_interact_with_nearby_object():
-			return
+		_try_interact_with_nearby_object()
+	elif event.keycode == KEY_F:
 		_try_place_path_lights()
 
 func _try_interact_with_nearby_object() -> bool:
@@ -161,14 +214,32 @@ func add_light(amount: int = 1) -> void:
 		return
 	light_count += amount
 	light_count_changed.emit(light_count)
-	if light_hud:
-		light_hud.call("set_count", light_count)
+	if player_hud:
+		player_hud.call("set_lights", light_count)
 
 func set_light_count(count: int) -> void:
 	light_count = maxi(0, count)
 	light_count_changed.emit(light_count)
-	if light_hud:
-		light_hud.call("set_count", light_count)
+	if player_hud:
+		player_hud.call("set_lights", light_count)
+
+func set_health(value: float) -> void:
+	health_current = clampf(value, 0.0, health_max)
+	health_changed.emit(health_current, health_max)
+	if player_hud:
+		player_hud.call("set_health", health_current, health_max)
+
+func take_damage(amount: float) -> void:
+	if amount <= 0.0 or health_current <= 0.0 or _damage_invulnerability_left > 0.0:
+		return
+	set_health(health_current - amount)
+	_damage_invulnerability_left = damage_invulnerability_duration
+
+func set_sleep(value: float) -> void:
+	sleep_current = clampf(value, 0.0, sleep_max)
+	sleep_changed.emit(sleep_current, sleep_max)
+	if player_hud:
+		player_hud.call("set_sleep", sleep_current, sleep_max)
 
 func _try_place_path_lights() -> void:
 	if not current_area:
@@ -308,16 +379,45 @@ func _create_minimap() -> void:
 		"handwritten_font": minimap_handwritten_font,
 	})
 
-func _create_light_hud() -> void:
+func _create_player_hud() -> void:
 	var canvas := CanvasLayer.new()
-	canvas.name = "LightHUDLayer"
+	canvas.name = "PlayerHUDLayer"
 	canvas.layer = 6
 	get_parent().add_child(canvas)
-	light_hud = Control.new()
-	light_hud.name = "LightHUD"
-	light_hud.set_script(LIGHT_HUD_SCRIPT)
-	canvas.add_child(light_hud)
-	light_hud.call("configure", light_count, light_hud_position)
+	player_hud = Control.new()
+	player_hud.name = "PlayerHUD"
+	player_hud.set_script(PLAYER_HUD_SCRIPT)
+	canvas.add_child(player_hud)
+	player_hud.call("configure", player_hud_style, health_current, health_max, sleep_current, sleep_max, light_count)
+	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
+	if inventory and not inventory.item_added.is_connected(_on_inventory_item_added):
+		inventory.item_added.connect(_on_inventory_item_added)
+	var controls_hint := Label.new()
+	controls_hint.name = "ControlsHint"
+	controls_hint.text = "WASD / Arrow Keys: Move   •   Space: Attack   •   Shift: Dash   •   E: Interact / Chop   •   F: Place Lights   •   I: Inventory   •   M: Toggle Map"
+	controls_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	controls_hint.offset_left = 20.0
+	controls_hint.offset_top = -46.0
+	controls_hint.offset_right = -20.0
+	controls_hint.offset_bottom = -14.0
+	controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	controls_hint.add_theme_font_size_override("font_size", 16)
+	controls_hint.add_theme_color_override("font_color", Color("f4f0df"))
+	controls_hint.add_theme_color_override("font_outline_color", Color("101923"))
+	controls_hint.add_theme_constant_override("outline_size", 4)
+	controls_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(controls_hint)
+
+func _on_inventory_item_added(item_id: StringName, quantity: int) -> void:
+	if not player_hud:
+		return
+	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
+	var definition := inventory.get_item_definition(item_id) if inventory else null
+	var display_name := definition.display_name if definition and not definition.display_name.is_empty() else String(item_id)
+	var icon: Texture2D = definition.icon if definition and definition.icon else definition.world_texture if definition else null
+	var fallback_color := definition.world_color if definition else Color("d69a55")
+	player_hud.call("notify_item", display_name, quantity, icon, fallback_color)
 
 func _entry_position(area: MapArea, exit_direction: String, crossing_point: Vector2) -> Vector2:
 	match exit_direction:
@@ -355,18 +455,88 @@ func _set_camera_bounds(area: MapArea) -> void:
 	camera.limit_bottom = int(area.global_position.y + area.area_size.y)
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 24.0, Color("ffd166"))
-	draw_arc(Vector2.ZERO, 30.0, 0.0, TAU, 48, Color("101923"), 4.0)
-	draw_line(Vector2(-10, 0), Vector2(10, 0), Color("101923"), 3.0)
-	draw_line(Vector2(0, -10), Vector2(0, 10), Color("101923"), 3.0)
+	var player_rect := Rect2(-PLAYER_SIZE * 0.5, PLAYER_SIZE)
+	draw_rect(player_rect, Color("ffd166"), true)
+	draw_rect(player_rect, Color("101923"), false, 4.0)
+	_draw_sword_swing()
 
 
+func attack() -> void:
+	if is_attacking:
+		return
+	is_attacking = true
+	_swing_direction = facing_direction
+	_swing_progress = 0.0
+	_hit_targets.clear()
+	var swing_tween := create_tween()
+	swing_tween.tween_method(_set_swing_progress, 0.0, 1.0, attack_duration)
+	swing_tween.finished.connect(_finish_swing)
 
+func _apply_sword_hit() -> void:
+	if _swing_progress < 0.0:
+		return
+	var facing_angle := _swing_direction.angle()
+	var swing_start := facing_angle - deg_to_rad(attack_arc_degrees * 0.5)
+	var swing_end := facing_angle + deg_to_rad(attack_arc_degrees * 0.5)
+	var blade_angle := lerpf(swing_start, swing_end, clampf(_swing_progress, 0.0, 1.0))
+	var blade_radius := attack_reach * (0.74 + 0.08 * sin(_swing_progress * PI))
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = _sword_hit_shape
+	query.transform = Transform2D(0.0, global_position + Vector2.RIGHT.rotated(blade_angle) * blade_radius)
+	query.collision_mask = 2
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	for result in get_world_2d().direct_space_state.intersect_shape(query, 32):
+		var body := result.get("collider") as Node2D
+		if not body or not body.name.to_lower().begins_with("monster") or not body.has_method("take_damage"):
+			continue
+		var target_id := body.get_instance_id()
+		if _hit_targets.has(target_id):
+			continue
+		var to_target := body.global_position - global_position
+		if to_target.is_zero_approx():
+			continue
+		if to_target.normalized().dot(_swing_direction) < cos(deg_to_rad(attack_arc_degrees * 0.5 + 20.0)):
+			continue
+		_hit_targets[target_id] = true
+		body.call("take_damage", attack_damage, global_position)
 
+func _set_swing_progress(value: float) -> void:
+	_swing_progress = value
+	queue_redraw()
 
-func _on_hitbox_body_entered(body: Node2D) -> void:
-	if is_attacking and body.name.begins_with("monster"):
-		body.take_damage(strength, position)
-		
-	
-		
+func _finish_swing() -> void:
+	is_attacking = false
+	_swing_progress = -1.0
+	queue_redraw()
+
+func _draw_sword_swing() -> void:
+	if _swing_progress < 0.0:
+		return
+	var facing_angle := _swing_direction.angle()
+	var start_angle := facing_angle - deg_to_rad(attack_arc_degrees * 0.5)
+	var end_angle := facing_angle + deg_to_rad(attack_arc_degrees * 0.5)
+	var trail_radius := attack_reach * (0.74 + 0.08 * sin(_swing_progress * PI))
+	var trail_alpha := 0.85 * (1.0 - _swing_progress * 0.55)
+	var center := _swing_direction * 22.0
+	draw_arc(center, trail_radius, start_angle, end_angle, 28, Color(0.45, 0.88, 1.0, trail_alpha), 12.0, true)
+	var blade_angle := lerpf(start_angle, end_angle, _swing_progress)
+	var blade_direction := Vector2.RIGHT.rotated(blade_angle)
+	var blade_start := center + blade_direction * (trail_radius - 18.0)
+	var blade_end := center + blade_direction * (trail_radius + 22.0)
+	draw_line(blade_start, blade_end, Color(0.08, 0.14, 0.2, trail_alpha), 10.0, true)
+	draw_line(blade_start, blade_end, Color(0.9, 0.98, 1.0, trail_alpha), 5.0, true)
+
+func _start_dash() -> void:
+	if _dash_cooldown_left > 0.0 or _dash_time_left > 0.0 or transitioning:
+		return
+	var horizontal := int(Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D)) - int(Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A))
+	var vertical := int(Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S)) - int(Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W))
+	var input_direction := Vector2(horizontal, vertical).normalized()
+	_dash_direction = input_direction if not input_direction.is_zero_approx() else facing_direction
+	_dash_time_left = dash_duration
+	_dash_cooldown_left = dash_cooldown
+
+func _on_hitbox_body_entered(_body: Node2D) -> void:
+	# The old rectangular Area2D is kept disabled for existing player scenes.
+	pass

@@ -3,12 +3,14 @@
 [ext_resource type="Script" uid="uid://drx41yvlar6fy" path="res://template_player.gd" id="1_k7pdy"]
 [ext_resource type="Script" uid="uid://op6grnsnlo2i" path="res://gameplay/player_inventory.gd" id="2_rlrxx"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_nglou"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rlrxx"]
+size = Vector2(58, 42)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mhe6t"]
 size = Vector2(15, 14)
 
 [node name="Player" type="CharacterBody2D" unique_id=163405111]
+collision_mask = 2
 script = ExtResource("1_k7pdy")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1667872730]
@@ -21,7 +23,8 @@ script = ExtResource("2_rlrxx")
 item_database_path = NodePath("../../ItemDatabase")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1286508455]
-shape = SubResource("RectangleShape2D_nglou")
+position = Vector2(0, 70)
+shape = SubResource("RectangleShape2D_rlrxx")
 
 [node name="hitbox" type="Area2D" parent="." unique_id=1966073848]
 collision_mask = 2
