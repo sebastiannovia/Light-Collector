@@ -27,6 +27,12 @@ signal mined(item_id: StringName, quantity: int)
 @export_range(1, 999, 1) var wood_quantity := 3
 @export_range(32.0, 256.0, 1.0) var interaction_range := 176.0
 @export var prompt_text := "[E] Cut Tree"
+
+@export_group("Hit Animation")
+@export_range(0.0, 24.0, 0.5) var hit_shake_distance := 4.0
+@export_range(0.0, 15.0, 0.5) var hit_shake_rotation_degrees := 4.0
+@export_range(0.05, 0.6, 0.01) var hit_shake_duration := 0.18
+
 @export_group("Tree Occlusion")
 @export_range(16.0, 180.0, 1.0) var occlusion_radius := 82.0
 @export_range(1.0, 80.0, 1.0) var occlusion_edge_softness := 26.0
@@ -47,6 +53,9 @@ var _remaining_yield := 0
 var _selected_tree_texture: Texture2D
 var _occlusion_material: ShaderMaterial
 var _occluding_player: Node2D
+var _shake_tween: Tween
+var _visual_shake_offset: Vector2 = Vector2.ZERO
+var _visual_shake_rotation: float = 0.0
 
 func _ready() -> void:
 	_choose_random_tree_texture()
@@ -87,6 +96,8 @@ func get_visual_half_width() -> float:
 func _process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	if _shake_tween and _shake_tween.is_running():
+		queue_redraw()
 	var was_nearby := _nearby_player
 	var previous_occluding_player := _occluding_player
 	var nearest_player_distance := INF
@@ -156,6 +167,7 @@ func interact(player: Node) -> bool:
 		return false
 	hit_count += 1
 	hit.emit(hit_count, hits_required)
+	_play_chop_shake()
 	var inventory := _player_inventory(player)
 	if hit_count < hits_required:
 		if inventory:
@@ -183,8 +195,33 @@ func interact(player: Node) -> bool:
 
 	_depleted = true
 	inventory.set_feedback("Collected %d Wood" % collected)
-	queue_free()
+	_free_after_shake()
 	return true
+
+func _play_chop_shake() -> void:
+	if _shake_tween and _shake_tween.is_running():
+		_shake_tween.kill()
+	_visual_shake_offset = Vector2.ZERO
+	_visual_shake_rotation = 0.0
+	var direction := -1.0 if hit_count % 2 == 1 else 1.0
+	var rotation_amount := deg_to_rad(hit_shake_rotation_degrees) * direction
+	var first_duration := hit_shake_duration * 0.25
+	var return_duration := hit_shake_duration * 0.25
+	var settle_duration := hit_shake_duration * 0.5
+	_shake_tween = create_tween()
+	_shake_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_shake_tween.tween_property(self, "_visual_shake_rotation", rotation_amount, first_duration)
+	_shake_tween.parallel().tween_property(self, "_visual_shake_offset", Vector2(direction * hit_shake_distance, -hit_shake_distance * 0.2), first_duration)
+	_shake_tween.tween_property(self, "_visual_shake_rotation", -rotation_amount * 0.45, return_duration)
+	_shake_tween.parallel().tween_property(self, "_visual_shake_offset", Vector2(-direction * hit_shake_distance * 0.4, 0.0), return_duration)
+	_shake_tween.tween_property(self, "_visual_shake_rotation", 0.0, settle_duration)
+	_shake_tween.parallel().tween_property(self, "_visual_shake_offset", Vector2.ZERO, settle_duration)
+
+func _free_after_shake() -> void:
+	if _shake_tween and _shake_tween.is_running():
+		_shake_tween.finished.connect(queue_free, CONNECT_ONE_SHOT)
+	else:
+		queue_free()
 
 func _player_inventory(player: Node) -> PlayerInventory:
 	if player is PlayerInventory:
@@ -192,6 +229,7 @@ func _player_inventory(player: Node) -> PlayerInventory:
 	return player.get_node_or_null("PlayerInventory") as PlayerInventory
 
 func _draw() -> void:
+	draw_set_transform(_visual_shake_offset, _visual_shake_rotation)
 	if _selected_tree_texture:
 		var drawn_size := _selected_tree_texture.get_size() * tree_scale
 		var top_left := Vector2(-drawn_size.x * 0.5, -drawn_size.y) + texture_offset
