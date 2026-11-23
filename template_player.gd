@@ -244,6 +244,8 @@ func set_health(value: float) -> void:
 func take_damage(amount: float) -> void:
 	if amount <= 0.0 or health_current <= 0.0 or _damage_invulnerability_left > 0.0:
 		return
+	if Input.is_key_pressed(KEY_SHIFT) and _dash_time_left > 0.0:
+		return
 	set_health(health_current - amount)
 	_damage_invulnerability_left = damage_invulnerability_duration
 
