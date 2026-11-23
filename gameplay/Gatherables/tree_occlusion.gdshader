@@ -1,19 +1,30 @@
 shader_type canvas_item;
 render_mode blend_mix;
 
-uniform bool fade_enabled = false;
-uniform vec2 player_screen_uv = vec2(-2.0, -2.0);
-uniform float fade_radius_px : hint_range(16.0, 180.0, 1.0) = 82.0;
-uniform float edge_softness_px : hint_range(1.0, 80.0, 1.0) = 26.0;
+uniform sampler2D player_texture : filter_linear, repeat_disable;
+uniform vec3 player_uv_x;
+uniform vec3 player_uv_y;
+uniform bool player_flip_h = false;
+uniform bool player_flip_v = false;
 uniform float occluded_opacity : hint_range(0.0, 1.0, 0.01) = 0.2;
 
+varying vec2 world_position;
+
+void vertex() {
+	world_position = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+
 void fragment() {
-	vec4 pixel_color = texture(TEXTURE, UV) * COLOR;
-	if (fade_enabled) {
-		vec2 pixel_delta = (SCREEN_UV - player_screen_uv) / SCREEN_PIXEL_SIZE;
-		float distance_to_player = length(pixel_delta);
-		float visible_alpha = smoothstep(fade_radius_px - edge_softness_px, fade_radius_px + edge_softness_px, distance_to_player);
-		pixel_color.a *= mix(occluded_opacity, 1.0, visible_alpha);
+	vec3 point = vec3(world_position, 1.0);
+	vec2 player_uv = vec2(dot(player_uv_x, point), dot(player_uv_y, point));
+	if (all(greaterThanEqual(player_uv, vec2(0.0))) && all(lessThanEqual(player_uv, vec2(1.0)))) {
+		if (player_flip_h) {
+			player_uv.x = 1.0 - player_uv.x;
+		}
+		if (player_flip_v) {
+			player_uv.y = 1.0 - player_uv.y;
+		}
+		float coverage = texture(player_texture, player_uv).a;
+		COLOR.a *= mix(1.0, occluded_opacity, smoothstep(0.06, 0.65, coverage));
 	}
-	COLOR = pixel_color;
 }

@@ -2,6 +2,10 @@
 
 [ext_resource type="Texture2D" uid="uid://xle82014ubon" path="res://placeholder_tiles.svg" id="1_6rxil"]
 [ext_resource type="Texture2D" uid="uid://bnbkxjby13fs7" path="res://Tiles/Forest Tiles/forest_atlas.png" id="2_m3cuw"]
+[ext_resource type="Texture2D" uid="uid://b64rsdsy3vi56" path="res://Tiles/Atlases/forest_walls_top.png" id="3_kucjf"]
+[ext_resource type="Texture2D" uid="uid://bd1pe8r11k4xp" path="res://Tiles/Atlases/forest_walls_sides.png" id="4_wa5g2"]
+[ext_resource type="Texture2D" uid="uid://ca4epxpo8rvx0" path="res://Tiles/Atlases/forest_walls_bottom.png" id="5_0aqnp"]
+[ext_resource type="Texture2D" uid="uid://j24papdb6slu" path="res://Tiles/Atlases/forest_paths.png" id="6_emvd7"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o8c25"]
 texture = ExtResource("1_6rxil")
@@ -51,9 +55,52 @@ texture_region_size = Vector2i(256, 256)
 3:2/0 = 0
 3:2/0/custom_data_0 = "long_ball_grass_03"
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_42yu0"]
+texture = ExtResource("3_kucjf")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tubx6"]
+texture = ExtResource("4_wa5g2")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8g6vd"]
+texture = ExtResource("5_0aqnp")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_apq5k"]
+texture = ExtResource("6_emvd7")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+
 [resource]
 tile_size = Vector2i(256, 256)
 custom_data_layer_0/name = "forest_variant"
 custom_data_layer_0/type = 4
 sources/0 = SubResource("TileSetAtlasSource_o8c25")
 sources/1 = SubResource("TileSetAtlasSource_th2du")
+sources/2 = SubResource("TileSetAtlasSource_42yu0")
+sources/3 = SubResource("TileSetAtlasSource_tubx6")
+sources/4 = SubResource("TileSetAtlasSource_8g6vd")
+sources/5 = SubResource("TileSetAtlasSource_apq5k")

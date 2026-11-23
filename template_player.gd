@@ -12,9 +12,50 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 const PLAYER_FRONT_TEXTURE = preload("res://Assets/Player/Front.png")
 const PLAYER_BACK_TEXTURE = preload("res://Assets/Player/Back.png")
 const PLAYER_SIDE_TEXTURE = preload("res://Assets/Player/Side.png")
+const PLAYER_LEFT_RUN_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_walkind_left.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left2.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left3.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left4.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left5.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left6.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left7.png"),
+	preload("res://Assets/Animations/Character/mc_walking_left8.png"),
+]
+const PLAYER_RIGHT_RUN_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_walking_right1.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right2.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right3.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right4.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right5.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right6.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right7.png"),
+	preload("res://Assets/Animations/Character/mc_walking_right8.png"),
+]
+const PLAYER_UP_RUN_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/walking_from_you1.png"),
+	preload("res://Assets/Animations/Character/walking_from_you2.png"),
+	preload("res://Assets/Animations/Character/walking_from_you3.png"),
+	preload("res://Assets/Animations/Character/walking_from_you4.png"),
+	preload("res://Assets/Animations/Character/walking_from_you5.png"),
+	preload("res://Assets/Animations/Character/walking_from_you6.png"),
+	preload("res://Assets/Animations/Character/walking_from_you7.png"),
+	preload("res://Assets/Animations/Character/walking_from_you8.png"),
+]
+const PLAYER_DOWN_RUN_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_walking_to_you1.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you2.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you3.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you4.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you5.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you6.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you7.png"),
+	preload("res://Assets/Animations/Character/mc_walking_to_you8.png"),
+]
 const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 @export var move_speed := 420.0
+@export_range(1.0, 24.0, 0.5) var left_run_fps := 10.0
 @export var transition_duration := 0.25
 @export_range(0.0, 96.0, 1.0) var tree_collision_radius := 28.0
 
@@ -72,6 +113,10 @@ var player_hud: Control
 var is_attacking := false
 var _hit_targets: Dictionary = {}
 var facing_direction := Vector2.DOWN
+var _run_animation_active := false
+var _run_animation_elapsed := 0.0
+var _run_animation_frame := 0
+var _run_animation_frames: Array[Texture2D] = []
 var _swing_direction := Vector2.DOWN
 var _swing_progress := -1.0
 var _dash_direction := Vector2.DOWN
@@ -119,7 +164,15 @@ func _process(delta: float) -> void:
 	var direction := Vector2(horizontal, vertical).normalized()
 	if not direction.is_zero_approx():
 		facing_direction = direction
+	if direction.is_zero_approx():
+		_stop_run_animation()
 		_update_player_sprite()
+	elif absf(direction.x) > absf(direction.y):
+		var run_frames := PLAYER_LEFT_RUN_FRAMES if direction.x < 0.0 else PLAYER_RIGHT_RUN_FRAMES
+		_advance_run_animation(delta, run_frames)
+	else:
+		var run_frames := PLAYER_UP_RUN_FRAMES if direction.y < 0.0 else PLAYER_DOWN_RUN_FRAMES
+		_advance_run_animation(delta, run_frames)
 	var movement := direction * move_speed
 	if _dash_time_left > 0.0:
 		movement = _dash_direction * dash_speed
@@ -429,7 +482,7 @@ func _on_inventory_item_added(item_id: StringName, quantity: int) -> void:
 	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
 	var definition := inventory.get_item_definition(item_id) if inventory else null
 	var display_name := definition.display_name if definition and not definition.display_name.is_empty() else String(item_id)
-	var icon: Texture2D = definition.icon if definition and definition.icon else definition.world_texture if definition else null
+	var icon: Texture2D = definition.icon if definition else null
 	var fallback_color := definition.world_color if definition else Color("d69a55")
 	player_hud.call("notify_item", display_name, quantity, icon, fallback_color)
 
@@ -481,6 +534,29 @@ func _update_player_sprite() -> void:
 		player_sprite.flip_h = false
 		player_sprite.texture = PLAYER_BACK_TEXTURE if facing_direction.y < 0.0 else PLAYER_FRONT_TEXTURE
 
+func _advance_run_animation(delta: float, frames: Array[Texture2D]) -> void:
+	if not player_sprite or frames.is_empty():
+		return
+	if not _run_animation_active or _run_animation_frames != frames:
+		_run_animation_active = true
+		_run_animation_frames = frames
+		_run_animation_elapsed = 0.0
+		_run_animation_frame = 0
+	else:
+		_run_animation_elapsed += delta
+		var frame_duration := 1.0 / maxf(left_run_fps, 1.0)
+		if _run_animation_elapsed >= frame_duration:
+			var frames_to_advance := int(_run_animation_elapsed / frame_duration)
+			_run_animation_elapsed = fmod(_run_animation_elapsed, frame_duration)
+			_run_animation_frame = (_run_animation_frame + frames_to_advance) % frames.size()
+	player_sprite.texture = frames[_run_animation_frame]
+	player_sprite.flip_h = false
+
+func _stop_run_animation() -> void:
+	_run_animation_active = false
+	_run_animation_frames = []
+	_run_animation_elapsed = 0.0
+	_run_animation_frame = 0
 
 func attack() -> void:
 	if is_attacking:

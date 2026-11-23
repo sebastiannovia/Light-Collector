@@ -1,16 +1,20 @@
 [gd_scene format=3 uid="uid://li37js7hxtwx"]
 
 [ext_resource type="Script" uid="uid://mo2jasj04hsu" path="res://gameplay/Gatherables/harvestable_tree.gd" id="1_egjy7"]
-[ext_resource type="Texture2D" uid="uid://cn26og4uiiquh" path="res://Assets/Trees/tree_example.png" id="2_ja7j0"]
-[ext_resource type="Texture2D" uid="uid://dpr0abqe5w06s" path="res://Assets/Trees/tree_example_02.png" id="3_dntig"]
-[ext_resource type="Texture2D" uid="uid://c3574mch1afmt" path="res://Assets/Trees/tree_example_03.png" id="4_p8r1t"]
+[ext_resource type="Texture2D" uid="uid://cua6yc181spnh" path="res://Assets/Trees/forest_sprucetree_01.png" id="2_tree01"]
+[ext_resource type="Texture2D" uid="uid://cdtgaq1c0jat" path="res://Assets/Trees/forest_sprucetree_02.png" id="3_tree02"]
+[ext_resource type="Texture2D" uid="uid://bixddjcrwrqbi" path="res://Assets/Trees/forest_sprucetree_03.png" id="4_tree03"]
+[ext_resource type="Texture2D" uid="uid://brm6lvig55csh" path="res://Assets/Trees/forest_talltree_01.png" id="5_tree04"]
+[ext_resource type="Texture2D" uid="uid://bem4dcvtjbths" path="res://Assets/Trees/forest_tree_01.png" id="6_tree05"]
+[ext_resource type="Texture2D" uid="uid://csfknr5uf68qq" path="res://Assets/Trees/forest_tree_02.png" id="7_tree06"]
+[ext_resource type="Texture2D" uid="uid://cavw3vfytwexx" path="res://Assets/Trees/forest_tree_03.png" id="8_tree07"]
+[ext_resource type="Texture2D" uid="uid://cpuio5t4uh5i1" path="res://Assets/Trees/forest_tree_04.png" id="9_tree08"]
+[ext_resource type="Texture2D" uid="uid://dcsa71jvqixec" path="res://Assets/Trees/forest_tree_05.png" id="10_tree09"]
+[ext_resource type="Texture2D" uid="uid://dormfiqpnhl1h" path="res://Assets/Trees/forest_tree_withhole_01.png" id="11_tree10"]
+[ext_resource type="Texture2D" uid="uid://bl1ri00prdod7" path="res://Assets/Trees/forest_tree_withhole_05.png" id="12_tree11"]
 
 [node name="HarvestableTree" type="Node2D" unique_id=762583996]
 script = ExtResource("1_egjy7")
-tree_textures = Array[Texture2D]([ExtResource("2_ja7j0"), ExtResource("3_dntig"), ExtResource("4_p8r1t")])
+tree_textures = Array[Texture2D]([ExtResource("2_tree01"), ExtResource("3_tree02"), ExtResource("4_tree03"), ExtResource("5_tree04"), ExtResource("6_tree05"), ExtResource("7_tree06"), ExtResource("8_tree07"), ExtResource("9_tree08"), ExtResource("10_tree09"), ExtResource("11_tree10"), ExtResource("12_tree11")])
 prompt_text = ""
-occlusion_radius = null
-occlusion_edge_softness = null
 occluded_opacity_percent = 40.0
-trunk_collision_radius = null
-trunk_collision_offset = null

@@ -2,6 +2,8 @@
 extends Node2D
 class_name MapArea
 
+signal layout_changed
+
 const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
 
 @export var area_label := "NEW AREA":
@@ -258,6 +260,7 @@ func _redraw_layout() -> void:
 	var path_guides := get_node_or_null("PathGuides")
 	if path_guides:
 		path_guides.queue_redraw()
+	layout_changed.emit()
 
 func _snap_to_neighbor() -> void:
 	if _snapping or not is_inside_tree() or not snap_to_neighbors:

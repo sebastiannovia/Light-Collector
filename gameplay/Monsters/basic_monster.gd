@@ -15,11 +15,23 @@ extends CharacterBody2D
 @export_range(0.0, 500.0, 1.0) var knockback_force := 100.0
 @export_range(0.05, 1.0, 0.05) var knockback_duration := 0.25
 
+@export_group("Movement Animation")
+@export_range(1.0, 24.0, 0.5) var movement_animation_fps := 8.0
+@export var walk_frames: Array[Texture2D] = []
+@export var walk_forward_frames: Array[Texture2D] = []
+@export var walk_backward_frames: Array[Texture2D] = []
+@export var walk_sideways_frames: Array[Texture2D] = []
+@export var sideways_frames_face_left := false
+
 var health := 0
 var is_alive := true
 var target: Node2D
 var _attack_cooldown_left := 0.0
 var _knockback_tween: Tween
+var _idle_texture: Texture2D
+var _active_animation_frames: Array[Texture2D] = []
+var _animation_elapsed := 0.0
+var _animation_frame := 0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var body_shape: CollisionShape2D = $CollisionShape2D
@@ -28,6 +40,7 @@ var _knockback_tween: Tween
 
 func _ready() -> void:
 	health = starting_health
+	_idle_texture = sprite.texture
 	add_to_group("monsters")
 	if not sight_area.body_entered.is_connected(_on_sight_body_entered):
 		sight_area.body_entered.connect(_on_sight_body_entered)
@@ -47,26 +60,75 @@ func _physics_process(delta: float) -> void:
 		return
 	if _knockback_tween and _knockback_tween.is_running():
 		velocity = Vector2.ZERO
+		_stop_movement_animation()
 		return
 	if not is_instance_valid(target):
 		target = null
 		velocity = Vector2.ZERO
+		_stop_movement_animation()
 		_update_depth_order()
 		return
 	var offset := target.global_position - global_position
 	var distance := offset.length()
 	if absf(offset.x) > 0.1:
-		sprite.flip_h = offset.x < 0.0
+		sprite.flip_h = offset.x > 0.0 if sideways_frames_face_left else offset.x < 0.0
 	if distance > attack_range:
 		velocity = offset.normalized() * chase_speed
 		move_and_slide()
+		_update_movement_animation(delta, velocity)
 	else:
 		velocity = Vector2.ZERO
+		_stop_movement_animation()
 		if _attack_cooldown_left <= 0.0:
 			_attack_cooldown_left = attack_cooldown
 			if target.has_method("take_damage"):
 				target.call("take_damage", attack_damage)
 	_update_depth_order()
+
+func _update_movement_animation(delta: float, move_direction: Vector2) -> void:
+	if move_direction.is_zero_approx():
+		_stop_movement_animation()
+		return
+
+	var selected_frames: Array[Texture2D] = walk_frames
+	var uses_directional_frames := not walk_forward_frames.is_empty() or not walk_backward_frames.is_empty() or not walk_sideways_frames.is_empty()
+	if uses_directional_frames:
+		if absf(move_direction.x) > absf(move_direction.y):
+			selected_frames = walk_sideways_frames
+		elif move_direction.y < 0.0:
+			selected_frames = walk_backward_frames
+		else:
+			selected_frames = walk_forward_frames
+		if selected_frames.is_empty():
+			selected_frames = walk_frames
+
+	if selected_frames.is_empty():
+		_stop_movement_animation()
+		return
+
+	if selected_frames != _active_animation_frames:
+		_active_animation_frames = selected_frames
+		_animation_elapsed = 0.0
+		_animation_frame = 0
+	else:
+		_animation_elapsed += delta
+		var frame_duration := 1.0 / maxf(movement_animation_fps, 1.0)
+		if _animation_elapsed >= frame_duration:
+			var frames_to_advance := floori(_animation_elapsed / frame_duration)
+			_animation_elapsed = fmod(_animation_elapsed, frame_duration)
+			_animation_frame = (_animation_frame + frames_to_advance) % selected_frames.size()
+
+	sprite.texture = selected_frames[_animation_frame]
+	if uses_directional_frames:
+		sprite.flip_h = selected_frames == walk_sideways_frames and (move_direction.x > 0.0 if sideways_frames_face_left else move_direction.x < 0.0)
+	else:
+		sprite.flip_h = move_direction.x < 0.0
+
+func _stop_movement_animation() -> void:
+	_active_animation_frames = []
+	_animation_elapsed = 0.0
+	_animation_frame = 0
+	sprite.texture = _idle_texture
 
 func take_damage(damage: int, attacker_position: Vector2) -> void:
 	if not is_alive or damage <= 0:
@@ -98,11 +160,13 @@ func _die() -> void:
 func _on_sight_body_entered(body: Node2D) -> void:
 	if is_alive and body.is_in_group("map_player"):
 		target = body
+		_stop_movement_animation()
 
 func _on_sight_body_exited(body: Node2D) -> void:
 	if body == target and is_alive:
 		target = null
 		velocity = Vector2.ZERO
+		_stop_movement_animation()
 
 func _update_depth_order() -> void:
 	var sprite_bottom := sprite.position.y + sprite.texture.get_height() * sprite.scale.y * 0.5

@@ -1,18 +1,34 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://r51lgmbwp7r2"]
 
-[ext_resource type="Script" path="res://gameplay/Monsters/basic_monster.gd" id="1_caur1"]
-[ext_resource type="Texture2D" path="res://Assets/Monsters/charger_sprite.png" id="2_e4hog"]
+[ext_resource type="Script" uid="uid://1p4j0xe6r5q8" path="res://gameplay/Monsters/basic_monster.gd" id="1_caur1"]
+[ext_resource type="Texture2D" uid="uid://dtsj4utf4w2wb" path="res://Assets/Monsters/charger_sprite.png" id="2_e4hog"]
+[ext_resource type="Texture2D" uid="uid://bj3p3ep82vd0x" path="res://Assets/Animations/charger/charger_walking_forward_1.png" id="2_vba8o"]
+[ext_resource type="Texture2D" uid="uid://d345xd02sf524" path="res://Assets/Animations/charger/charger_walking_forward_2.png" id="3_xx4su"]
+[ext_resource type="Texture2D" uid="uid://dkw1l25ppv5et" path="res://Assets/Animations/charger/charger_walking_forward_3.png" id="4_kpkmp"]
+[ext_resource type="Texture2D" uid="uid://dctru24xyjbmm" path="res://Assets/Animations/charger/charger_walking_forward_4.png" id="5_uuai3"]
+[ext_resource type="Texture2D" uid="uid://b0n0r6ob5cdos" path="res://Assets/Animations/charger/charger_walking_backward_1.png" id="6_vxh6t"]
+[ext_resource type="Texture2D" uid="uid://bul71d1cvq5vx" path="res://Assets/Animations/charger/charger_walking_backward_2.png" id="7_3v77n"]
+[ext_resource type="Texture2D" uid="uid://qe2s0n2ri80l" path="res://Assets/Animations/charger/charger_walking_backward_3.png" id="8_wqqni"]
+[ext_resource type="Texture2D" uid="uid://dt85p8shrt245" path="res://Assets/Animations/charger/charger_walking_backward_4.png" id="9_3sr65"]
+[ext_resource type="Texture2D" uid="uid://cx1luf44gqukq" path="res://Assets/Animations/charger/charger_walking_sideways_1.png" id="10_qt82q"]
+[ext_resource type="Texture2D" uid="uid://w2g7682frmys" path="res://Assets/Animations/charger/charger_walking_sideways_2.png" id="11_8tlbc"]
+[ext_resource type="Texture2D" uid="uid://cag0xekgwnr03" path="res://Assets/Animations/charger/charger_walking_sideways_3.png" id="12_1fxue"]
+[ext_resource type="Texture2D" uid="uid://bk7w4c0ls6swj" path="res://Assets/Animations/charger/charger_walking_sideways_4.png" id="13_xjqy5"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_caur1"]
 size = Vector2(265, 210)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_6dgeb"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_vba8o"]
 radius = 320.0
 
 [node name="monster_charger" type="CharacterBody2D" unique_id=471776626]
 collision_layer = 2
 script = ExtResource("1_caur1")
 display_name = "Charger"
+walk_forward_frames = Array[Texture2D]([ExtResource("2_vba8o"), ExtResource("3_xx4su"), ExtResource("4_kpkmp"), ExtResource("5_uuai3")])
+walk_backward_frames = Array[Texture2D]([ExtResource("6_vxh6t"), ExtResource("7_3v77n"), ExtResource("8_wqqni"), ExtResource("9_3sr65")])
+walk_sideways_frames = Array[Texture2D]([ExtResource("10_qt82q"), ExtResource("11_8tlbc"), ExtResource("12_1fxue"), ExtResource("13_xjqy5")])
+sideways_frames_face_left = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=593476529]
 texture = ExtResource("2_e4hog")
@@ -24,4 +40,4 @@ shape = SubResource("RectangleShape2D_caur1")
 collision_layer = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Sight" unique_id=1027942765]
-shape = SubResource("CircleShape2D_6dgeb")
+shape = SubResource("CircleShape2D_vba8o")
