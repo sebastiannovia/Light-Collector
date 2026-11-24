@@ -12,6 +12,31 @@ const LIGHT_MARKER_SCRIPT = preload("res://light_placement_marker.gd")
 const PLAYER_FRONT_TEXTURE = preload("res://Assets/Player/Front.png")
 const PLAYER_BACK_TEXTURE = preload("res://Assets/Player/Back.png")
 const PLAYER_SIDE_TEXTURE = preload("res://Assets/Player/Side.png")
+const PLAYER_EYE_GLOW_SHADER = preload("res://gameplay/player_eye_glow.gdshader")
+const PLAYER_IDLE_BACK_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_idle_back1.png"),
+	preload("res://Assets/Animations/Character/mc_idle_back2.png"),
+	preload("res://Assets/Animations/Character/mc_idle_back3.png"),
+	preload("res://Assets/Animations/Character/mc_idle_back4.png"),
+]
+const PLAYER_IDLE_FRONT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_idle_front1.png"),
+	preload("res://Assets/Animations/Character/mc_idle_front2.png"),
+	preload("res://Assets/Animations/Character/mc_idle_front3.png"),
+	preload("res://Assets/Animations/Character/mc_idle_front4.png"),
+]
+const PLAYER_IDLE_LEFT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_idle_left1.png"),
+	preload("res://Assets/Animations/Character/mc_idle_left2.png"),
+	preload("res://Assets/Animations/Character/mc_idle_left3.png"),
+	preload("res://Assets/Animations/Character/mc_idle_left4.png"),
+]
+const PLAYER_IDLE_RIGHT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_idle_right1.png"),
+	preload("res://Assets/Animations/Character/mc_idle_right2.png"),
+	preload("res://Assets/Animations/Character/mc_idle_right3.png"),
+	preload("res://Assets/Animations/Character/mc_idle_right4.png"),
+]
 const PLAYER_LEFT_RUN_FRAMES: Array[Texture2D] = [
 	preload("res://Assets/Animations/Character/mc_walkind_left.png"),
 	preload("res://Assets/Animations/Character/mc_walking_left2.png"),
@@ -56,8 +81,14 @@ const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 @export var move_speed := 420.0
 @export_range(1.0, 24.0, 0.5) var left_run_fps := 10.0
+@export_range(1.0, 12.0, 0.5) var idle_animation_fps := 4.0
 @export var transition_duration := 0.25
 @export_range(0.0, 96.0, 1.0) var tree_collision_radius := 28.0
+
+@export_group("Night Eye Glow")
+@export var eye_glow_color := Color("ffca57")
+@export_range(0.0, 3.0, 0.05) var eye_glow_intensity := 1.35
+@export_range(0.1, 5.0, 0.1) var eye_glow_transition_speed := 1.6
 
 @export_group("Combat")
 @export_range(1, 1000, 1) var attack_damage := 80
@@ -119,6 +150,10 @@ var _run_animation_active := false
 var _run_animation_elapsed := 0.0
 var _run_animation_frame := 0
 var _run_animation_frames: Array[Texture2D] = []
+var _idle_animation_active := false
+var _idle_animation_elapsed := 0.0
+var _idle_animation_frame := 0
+var _idle_animation_frames: Array[Texture2D] = []
 var _swing_direction := Vector2.DOWN
 var _swing_progress := -1.0
 var _dash_direction := Vector2.DOWN
@@ -126,6 +161,10 @@ var _dash_time_left := 0.0
 var _dash_cooldown_left := 0.0
 var _damage_invulnerability_left := 0.0
 var _sword_hit_shape := CapsuleShape2D.new()
+var _eye_glow_material: ShaderMaterial
+var _eye_glow_level := 0.0
+var _eye_glow_time := 0.0
+var _day_night_cycle: DayNightCycle
 
 func _ready() -> void:
 	var pause_layer := CanvasLayer.new()
@@ -139,6 +178,13 @@ func _ready() -> void:
 		legacy_hitbox.monitorable = false
 	_sword_hit_shape.radius = BLADE_WIDTH * 0.5
 	_update_player_sprite()
+	_day_night_cycle = get_tree().get_first_node_in_group("day_night_cycle") as DayNightCycle
+	_eye_glow_material = ShaderMaterial.new()
+	_eye_glow_material.shader = PLAYER_EYE_GLOW_SHADER
+	_eye_glow_material.set_shader_parameter("glow_color", eye_glow_color)
+	player_sprite.material = _eye_glow_material
+	_set_player_sprite_texture(player_sprite.texture)
+	_update_eye_glow(0.0)
 	add_to_group("map_player")
 	light_count = starting_light_count
 	health_current = clampf(health_current, 0.0, health_max)
@@ -154,6 +200,7 @@ func _ready() -> void:
 		call_deferred("_create_player_hud")
 
 func _process(delta: float) -> void:
+	_update_eye_glow(delta)
 	if Input.is_action_just_pressed("attack"):
 		attack()
 	_dash_cooldown_left = maxf(0.0, _dash_cooldown_left - delta)
@@ -168,11 +215,13 @@ func _process(delta: float) -> void:
 		facing_direction = direction
 	if direction.is_zero_approx():
 		_stop_run_animation()
-		_update_player_sprite()
+		_advance_idle_animation(delta)
 	elif absf(direction.x) > absf(direction.y):
+		_stop_idle_animation()
 		var run_frames := PLAYER_LEFT_RUN_FRAMES if direction.x < 0.0 else PLAYER_RIGHT_RUN_FRAMES
 		_advance_run_animation(delta, run_frames)
 	else:
+		_stop_idle_animation()
 		var run_frames := PLAYER_UP_RUN_FRAMES if direction.y < 0.0 else PLAYER_DOWN_RUN_FRAMES
 		_advance_run_animation(delta, run_frames)
 	var movement := direction * move_speed
@@ -530,15 +579,83 @@ func _set_camera_bounds(area: MapArea) -> void:
 func _draw() -> void:
 	_draw_sword_swing()
 
+func _update_eye_glow(delta: float) -> void:
+	if not _eye_glow_material:
+		return
+	_eye_glow_time += delta
+	var target_level := _night_glow_amount()
+	_eye_glow_level = move_toward(_eye_glow_level, target_level, eye_glow_transition_speed * delta)
+	var pulse := 0.96 + 0.04 * sin(_eye_glow_time * 2.2)
+	_eye_glow_material.set_shader_parameter("glow_color", eye_glow_color)
+	_eye_glow_material.set_shader_parameter("night_strength", _eye_glow_level * eye_glow_intensity * pulse)
+
+func _set_player_sprite_texture(texture: Texture2D) -> void:
+	if not player_sprite:
+		return
+	player_sprite.texture = texture
+	if _eye_glow_material and texture:
+		_eye_glow_material.set_shader_parameter("sprite_texture", texture)
+		_eye_glow_material.set_shader_parameter("sprite_pixel_size", Vector2.ONE / Vector2(texture.get_size()))
+
+func _night_glow_amount() -> float:
+	if not is_instance_valid(_day_night_cycle):
+		return 0.0
+	if _day_night_cycle.permanent_night:
+		return 1.0
+	var hour := _day_night_cycle.hour
+	if hour >= 20.0 or hour < 5.0:
+		return 1.0
+	if hour >= 18.5:
+		return smoothstep(18.5, 20.0, hour)
+	if hour < 6.25:
+		return 1.0 - smoothstep(5.0, 6.25, hour)
+	return 0.0
+
 func _update_player_sprite() -> void:
 	if not player_sprite:
 		return
-	if absf(facing_direction.x) > absf(facing_direction.y):
-		player_sprite.texture = PLAYER_SIDE_TEXTURE
+	var frames := _idle_frames_for_facing()
+	player_sprite.flip_h = false
+	if not frames.is_empty():
+		_set_player_sprite_texture(frames[0])
+	elif absf(facing_direction.x) > absf(facing_direction.y):
+		_set_player_sprite_texture(PLAYER_SIDE_TEXTURE)
 		player_sprite.flip_h = facing_direction.x < 0.0
 	else:
-		player_sprite.flip_h = false
-		player_sprite.texture = PLAYER_BACK_TEXTURE if facing_direction.y < 0.0 else PLAYER_FRONT_TEXTURE
+		_set_player_sprite_texture(PLAYER_BACK_TEXTURE if facing_direction.y < 0.0 else PLAYER_FRONT_TEXTURE)
+
+func _idle_frames_for_facing() -> Array[Texture2D]:
+	if absf(facing_direction.x) > absf(facing_direction.y):
+		return PLAYER_IDLE_LEFT_FRAMES if facing_direction.x < 0.0 else PLAYER_IDLE_RIGHT_FRAMES
+	return PLAYER_IDLE_BACK_FRAMES if facing_direction.y < 0.0 else PLAYER_IDLE_FRONT_FRAMES
+
+func _advance_idle_animation(delta: float) -> void:
+	if not player_sprite:
+		return
+	var frames := _idle_frames_for_facing()
+	if frames.is_empty():
+		_update_player_sprite()
+		return
+	if not _idle_animation_active or _idle_animation_frames != frames:
+		_idle_animation_active = true
+		_idle_animation_frames = frames
+		_idle_animation_elapsed = 0.0
+		_idle_animation_frame = 0
+	else:
+		_idle_animation_elapsed += delta
+		var frame_duration := 1.0 / maxf(idle_animation_fps, 1.0)
+		if _idle_animation_elapsed >= frame_duration:
+			var frames_to_advance := int(_idle_animation_elapsed / frame_duration)
+			_idle_animation_elapsed = fmod(_idle_animation_elapsed, frame_duration)
+			_idle_animation_frame = (_idle_animation_frame + frames_to_advance) % frames.size()
+	_set_player_sprite_texture(frames[_idle_animation_frame])
+	player_sprite.flip_h = false
+
+func _stop_idle_animation() -> void:
+	_idle_animation_active = false
+	_idle_animation_frames = []
+	_idle_animation_elapsed = 0.0
+	_idle_animation_frame = 0
 
 func _advance_run_animation(delta: float, frames: Array[Texture2D]) -> void:
 	if not player_sprite or frames.is_empty():
@@ -555,7 +672,7 @@ func _advance_run_animation(delta: float, frames: Array[Texture2D]) -> void:
 			var frames_to_advance := int(_run_animation_elapsed / frame_duration)
 			_run_animation_elapsed = fmod(_run_animation_elapsed, frame_duration)
 			_run_animation_frame = (_run_animation_frame + frames_to_advance) % frames.size()
-	player_sprite.texture = frames[_run_animation_frame]
+	_set_player_sprite_texture(frames[_run_animation_frame])
 	player_sprite.flip_h = false
 
 func _stop_run_animation() -> void:
