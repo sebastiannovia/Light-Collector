@@ -1,5 +1,14 @@
 extends CharacterBody2D
 
+enum AttackPattern { SWIPE, LEAP, CHARGE }
+
+const WORLD_GLOW := preload("res://gameplay/world_glow.gd")
+const LIGHT_CORE := preload("res://gameplay/Monsters/monster_light_core.gd")
+const LIGHT_LOOK_AHEAD := 64.0
+const AREA_MARGIN := 48.0
+const ATTACK_FLASH_TIME := 0.10
+const ATTACK_PATH_STEP := 16.0
+
 @export_group("Monster")
 @export var display_name := "Monster"
 @export_range(1, 10000, 1) var starting_health := 160
@@ -10,6 +19,13 @@ extends CharacterBody2D
 @export_range(24.0, 256.0, 1.0) var attack_range := 110.0
 @export_range(0.0, 100.0, 1.0) var attack_damage := 10.0
 @export_range(0.1, 5.0, 0.05) var attack_cooldown := 1.0
+@export_range(0.15, 2.0, 0.01) var attack_windup := 0.48
+@export var attack_pattern: AttackPattern = AttackPattern.SWIPE
+@export_range(0.12, 1.5, 0.01) var attack_travel_time := 0.42
+@export_range(16.0, 160.0, 1.0) var attack_impact_radius := 70.0
+@export_range(16.0, 180.0, 1.0) var jump_height := 82.0
+@export_range(100.0, 500.0, 1.0) var charge_distance := 300.0
+@export_range(0.0, 160.0, 1.0) var charge_tusk_offset := 100.0
 
 @export_group("Knockback")
 @export_range(0.0, 500.0, 1.0) var knockback_force := 100.0
@@ -23,15 +39,39 @@ extends CharacterBody2D
 @export var walk_sideways_frames: Array[Texture2D] = []
 @export var sideways_frames_face_left := false
 
+@export_group("Light")
+@export var glow_color := Color("83f1de")
+@export_range(0.0, 1.5, 0.01) var glow_intensity := 0.46
+@export_range(0, 24, 1) var core_light_amount := 2
+
 var health := 0
 var is_alive := true
 var target: Node2D
 var _attack_cooldown_left := 0.0
+var _attack_windup_left := 0.0
+var _attack_flash_left := 0.0
+var _attack_target: Node2D
+var _leap_collision_exception: PhysicsBody2D
+var _attack_origin := Vector2.ZERO
+var _attack_destination := Vector2.ZERO
+var _attack_heading := Vector2.RIGHT
+var _attack_travel_left := 0.0
+var _charge_hit := false
+var _sprite_rest_position := Vector2.ZERO
+var _attack_warning: Node2D
+var _idle_modulate: Color
 var _knockback_tween: Tween
 var _idle_texture: Texture2D
 var _active_animation_frames: Array[Texture2D] = []
 var _animation_elapsed := 0.0
 var _animation_frame := 0
+var _cycle: DayNightCycle
+var _area: MapArea
+var _spawn_position: Vector2
+var _spawn_clear := true
+var _active := false
+var _glow: PointLight2D
+var _glow_time := 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var body_shape: CollisionShape2D = $CollisionShape2D
@@ -41,6 +81,8 @@ var _animation_frame := 0
 func _ready() -> void:
 	health = starting_health
 	_idle_texture = sprite.texture
+	_idle_modulate = sprite.self_modulate
+	_sprite_rest_position = sprite.position
 	add_to_group("monsters")
 	if not sight_area.body_entered.is_connected(_on_sight_body_entered):
 		sight_area.body_entered.connect(_on_sight_body_entered)
@@ -48,42 +90,351 @@ func _ready() -> void:
 		sight_area.body_exited.connect(_on_sight_body_exited)
 	set_collision_mask_value(1, true)
 	set_collision_layer_value(2, true)
-	var sight_circle := sight_shape.shape as CircleShape2D
+	var sight_circle := sight_shape.shape.duplicate() as CircleShape2D
 	if sight_circle:
 		sight_circle.radius = sight_range
+		sight_shape.shape = sight_circle
+	var ancestor := get_parent()
+	while ancestor and not ancestor is MapArea:
+		ancestor = ancestor.get_parent()
+	_area = ancestor as MapArea
+	_spawn_position = position
 	z_as_relative = false
+	_glow = WORLD_GLOW.make_light(158.0, glow_color, glow_intensity)
+	sprite.add_child(_glow)
+	_attack_warning = Node2D.new()
+	_attack_warning.name = "AttackWarning"
+	_attack_warning.z_as_relative = false
+	_attack_warning.z_index = 1
+	var warning_material := CanvasItemMaterial.new()
+	warning_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	_attack_warning.material = warning_material
+	_attack_warning.hide()
+	_attack_warning.draw.connect(_draw_attack_warning)
+	add_child(_attack_warning)
 	_update_depth_order()
+	_apply_active(false)
+	_bind_cycle.call_deferred()
+
+
+func _bind_cycle() -> void:
+	_cycle = get_tree().get_first_node_in_group("day_night_cycle") as DayNightCycle
+	if not _cycle:
+		return
+	_cycle.night_changed.connect(_on_night_changed)
+	if _area:
+		_area.visibility_changed.connect(_refresh_active)
+	_on_night_changed(_cycle.is_night)
+
+
+func _on_night_changed(night: bool) -> void:
+	if night:
+		health = starting_health
+		is_alive = true
+		position = _spawn_position
+		_target_safe_spawn()
+		_attack_cooldown_left = 0.0
+		_update_depth_order()
+	_refresh_active()
+
+
+func _target_safe_spawn() -> void:
+	_spawn_clear = true
+	if not _area or _area.get_path_light_exposure(global_position) <= 0.0:
+		return
+	var origin := global_position
+	for radius in PackedFloat32Array([128.0, 256.0, 384.0, 512.0]):
+		for index in range(12):
+			var candidate := origin + Vector2.RIGHT.rotated(float(index) * TAU / 12.0) * radius
+			if _inside_area(candidate) and _area.get_path_light_exposure(candidate) <= 0.0:
+				global_position = candidate
+				return
+	_spawn_clear = false
+
+
+func _refresh_active() -> void:
+	var can_activate := is_alive and _spawn_clear and _cycle and _cycle.is_night and (not _area or _area.is_visible_in_tree())
+	if can_activate != _active:
+		_apply_active(can_activate)
+
+
+func _apply_active(enabled: bool) -> void:
+	_active = enabled
+	sprite.visible = enabled
+	_glow.enabled = enabled
+	body_shape.set_deferred("disabled", not enabled)
+	sight_shape.set_deferred("disabled", not enabled)
+	sight_area.set_deferred("monitoring", enabled)
+	set_physics_process(enabled)
+	target = null
+	velocity = Vector2.ZERO
+	_clear_attack()
+	if _knockback_tween and _knockback_tween.is_running():
+		_knockback_tween.kill()
+	_stop_movement_animation()
+
 
 func _physics_process(delta: float) -> void:
+	if not _active:
+		return
 	_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
-	if not is_alive:
+	if _attack_flash_left > 0.0:
+		_attack_flash_left = maxf(0.0, _attack_flash_left - delta)
+		_update_attack_warning()
+	_glow_time += delta
+	_glow.energy = glow_intensity * (0.92 + 0.08 * sin(_glow_time * 3.0))
+	if _area and _area.get_path_light_exposure(global_position) > 0.0:
+		_clear_attack()
+		if _knockback_tween and _knockback_tween.is_running():
+			_knockback_tween.kill()
+		_move_in_direction(_direction_away_from_light(), delta)
 		return
 	if _knockback_tween and _knockback_tween.is_running():
-		velocity = Vector2.ZERO
-		_stop_movement_animation()
+		_move_in_direction(Vector2.ZERO, delta)
+		return
+	if _attack_windup_left > 0.0:
+		_advance_windup(delta)
+		return
+	if _attack_travel_left > 0.0:
+		_advance_attack_travel(delta)
+		return
+	if _attack_cooldown_left > 0.0:
+		_move_in_direction(Vector2.ZERO, delta)
 		return
 	if not is_instance_valid(target):
 		target = null
-		velocity = Vector2.ZERO
-		_stop_movement_animation()
-		_update_depth_order()
+		_move_in_direction(Vector2.ZERO, delta)
+		return
+	if _area and _area.get_path_light_exposure(target.global_position) > 0.0:
+		_move_in_direction(Vector2.ZERO, delta)
 		return
 	var offset := target.global_position - global_position
 	var distance := offset.length()
-	if absf(offset.x) > 0.1:
-		sprite.flip_h = offset.x > 0.0 if sideways_frames_face_left else offset.x < 0.0
-	if distance > attack_range:
-		velocity = offset.normalized() * chase_speed
-		move_and_slide()
-		_update_movement_animation(delta, velocity)
+	if distance > attack_range or not _begin_attack(offset):
+		_move_in_direction(_chase_direction(offset.normalized(), distance), delta)
+
+
+func _begin_attack(offset: Vector2) -> bool:
+	_attack_origin = global_position
+	_attack_destination = global_position
+	_attack_heading = offset.normalized() if not offset.is_zero_approx() else Vector2.RIGHT
+	match attack_pattern:
+		AttackPattern.LEAP:
+			_attack_destination = _clear_attack_path(_attack_origin, _attack_origin + offset)
+			if _attack_destination.distance_to(target.global_position) > attack_impact_radius:
+				return false
+		AttackPattern.CHARGE:
+			_attack_destination = _clear_attack_path(_attack_origin, _attack_origin + _attack_heading * charge_distance)
+			if _attack_destination.distance_squared_to(_attack_origin) < ATTACK_PATH_STEP * ATTACK_PATH_STEP:
+				return false
+	_attack_target = target
+	_attack_windup_left = attack_windup
+	_charge_hit = false
+	_hold_attack_pose()
+	_update_attack_warning()
+	return true
+
+
+func _clear_attack_path(from: Vector2, to: Vector2) -> Vector2:
+	if not _area:
+		return to
+	var steps := maxi(1, ceili(from.distance_to(to) / ATTACK_PATH_STEP))
+	var last_clear := from
+	for index in range(1, steps + 1):
+		var sample := from.lerp(to, float(index) / float(steps))
+		if not _inside_area(sample) or _area.get_path_light_exposure(sample) > 0.0:
+			break
+		last_clear = sample
+	return last_clear
+
+
+func _hold_attack_pose() -> void:
+	velocity = Vector2.ZERO
+	if attack_pattern == AttackPattern.CHARGE:
+		_update_movement_animation(0.0, _attack_heading)
 	else:
-		velocity = Vector2.ZERO
 		_stop_movement_animation()
-		if _attack_cooldown_left <= 0.0:
-			_attack_cooldown_left = attack_cooldown
-			if target.has_method("take_damage"):
-				target.call("take_damage", attack_damage)
 	_update_depth_order()
+
+
+func _advance_windup(delta: float) -> void:
+	_hold_attack_pose()
+	_attack_windup_left = maxf(0.0, _attack_windup_left - delta)
+	if _attack_windup_left == 0.0:
+		if attack_pattern == AttackPattern.SWIPE:
+			_hit_attack_circle(global_position, attack_range)
+			_finish_attack()
+			return
+		if attack_pattern == AttackPattern.LEAP and is_instance_valid(_attack_target):
+			_leap_collision_exception = _attack_target as PhysicsBody2D
+			if _leap_collision_exception:
+				add_collision_exception_with(_leap_collision_exception)
+		_attack_travel_left = attack_travel_time
+	_update_attack_warning()
+
+
+func _advance_attack_travel(delta: float) -> void:
+	_attack_travel_left = maxf(0.0, _attack_travel_left - delta)
+	var progress := 1.0 - _attack_travel_left / attack_travel_time
+	var previous := global_position
+	var intended := _attack_origin.lerp(_attack_destination, progress)
+	var safe_point := _clear_attack_path(previous, intended)
+	var collision := move_and_collide(safe_point - previous)
+	var blocked := collision != null or not safe_point.is_equal_approx(intended)
+	if attack_pattern == AttackPattern.LEAP:
+		sprite.position = _sprite_rest_position - Vector2(0.0, sin(PI * progress) * jump_height)
+	else:
+		_update_movement_animation(delta, _attack_heading)
+		_hit_charge_path(previous, global_position)
+	_update_depth_order()
+	if blocked or _attack_travel_left <= 0.0:
+		if attack_pattern == AttackPattern.LEAP:
+			_attack_destination = global_position
+			_hit_attack_circle(global_position, attack_impact_radius)
+		_finish_attack()
+		return
+	_update_attack_warning()
+
+
+func _hit_attack_circle(center: Vector2, radius: float) -> void:
+	if _can_hit_attack_target() and _attack_target.global_position.distance_squared_to(center) <= radius * radius:
+		_attack_target.call("take_damage", attack_damage)
+
+
+func _hit_charge_path(previous: Vector2, current: Vector2) -> void:
+	if _charge_hit or not _can_hit_attack_target():
+		return
+	var lead := _attack_heading * charge_tusk_offset
+	var closest := previous + lead
+	if not previous.is_equal_approx(current):
+		closest = Geometry2D.get_closest_point_to_segment(_attack_target.global_position, previous + lead, current + lead)
+	if closest.distance_squared_to(_attack_target.global_position) <= attack_impact_radius * attack_impact_radius:
+		_charge_hit = true
+		_attack_target.call("take_damage", attack_damage)
+
+
+func _can_hit_attack_target() -> bool:
+	if not is_instance_valid(_attack_target) or not _attack_target.has_method("take_damage"):
+		return false
+	if _area and (not Rect2(Vector2.ZERO, _area.area_size).has_point(_area.to_local(_attack_target.global_position)) or
+		_area.get_path_light_exposure(_attack_target.global_position) > 0.0):
+		return false
+	return true
+
+
+func _finish_attack() -> void:
+	_clear_attack()
+	_stop_movement_animation()
+	_attack_cooldown_left = attack_cooldown
+	_attack_flash_left = ATTACK_FLASH_TIME
+	_update_attack_warning()
+	_update_depth_order()
+
+
+func _clear_attack() -> void:
+	if is_instance_valid(_leap_collision_exception):
+		remove_collision_exception_with(_leap_collision_exception)
+	_leap_collision_exception = null
+	_attack_target = null
+	_attack_windup_left = 0.0
+	_attack_travel_left = 0.0
+	_attack_flash_left = 0.0
+	sprite.position = _sprite_rest_position
+	_update_attack_warning()
+
+
+func _update_attack_warning() -> void:
+	var warning_active := _attack_windup_left > 0.0 or _attack_travel_left > 0.0 or _attack_flash_left > 0.0
+	_attack_warning.visible = warning_active
+	sprite.self_modulate = _idle_modulate
+	if warning_active:
+		var progress := 1.0 - _attack_windup_left / attack_windup
+		sprite.self_modulate = _idle_modulate.lerp(Color("ffac76"), lerpf(0.25, 0.65, progress))
+		_attack_warning.queue_redraw()
+
+
+func _draw_attack_warning() -> void:
+	var impact := _attack_flash_left > 0.0
+	var progress := 1.0 - _attack_windup_left / attack_windup
+	var outline := Color("ff7a53") if impact else Color("ffc975")
+	match attack_pattern:
+		AttackPattern.LEAP:
+			_draw_attack_circle(_attack_warning.to_local(_attack_destination), attack_impact_radius, outline, progress)
+		AttackPattern.CHARGE:
+			_draw_charge_warning(outline, impact, progress)
+		_:
+			_draw_attack_circle(Vector2.ZERO, attack_range, outline, progress)
+
+
+func _draw_attack_circle(center: Vector2, radius: float, outline: Color, progress: float) -> void:
+	_attack_warning.draw_circle(center, radius, Color(outline, 0.12), true, -1.0, true)
+	_attack_warning.draw_circle(center, radius * progress, Color(outline, 0.25), true, -1.0, true)
+	_attack_warning.draw_arc(center, radius, 0.0, TAU, 64, outline, 3.0, true)
+
+
+func _draw_charge_warning(outline: Color, impact: bool, progress: float) -> void:
+	var lead := _attack_heading * charge_tusk_offset
+	var nose := _attack_warning.to_local(global_position + lead)
+	if impact or _attack_travel_left > 0.0:
+		_draw_attack_circle(nose, attack_impact_radius, outline, 1.0)
+		return
+	var start := _attack_warning.to_local(_attack_origin + lead)
+	var end := _attack_warning.to_local(_attack_destination + lead)
+	var side := _attack_heading.orthogonal() * attack_impact_radius
+	_attack_warning.draw_line(start, end, Color(outline, 0.16), attack_impact_radius * 2.0)
+	_attack_warning.draw_circle(start, attack_impact_radius, Color(outline, 0.16))
+	_attack_warning.draw_circle(end, attack_impact_radius, Color(outline, 0.16))
+	_attack_warning.draw_line(start + side, end + side, outline, 3.0, true)
+	_attack_warning.draw_line(start - side, end - side, outline, 3.0, true)
+	_attack_warning.draw_arc(start, attack_impact_radius, _attack_heading.angle() + PI * 0.5,
+		_attack_heading.angle() + PI * 1.5, 24, outline, 3.0, true)
+	_attack_warning.draw_arc(end, attack_impact_radius, _attack_heading.angle() - PI * 0.5,
+		_attack_heading.angle() + PI * 0.5, 24, outline, 3.0, true)
+	var arrow := start.lerp(end, progress)
+	var notch := _attack_heading * 26.0
+	var wing := _attack_heading.orthogonal() * 20.0
+	_attack_warning.draw_polyline(PackedVector2Array([arrow - notch + wing, arrow, arrow - notch - wing]), outline, 4.0, true)
+
+
+func _move_in_direction(direction: Vector2, delta: float) -> void:
+	velocity = direction * chase_speed
+	if not direction.is_zero_approx():
+		move_and_slide()
+	_update_movement_animation(delta, velocity)
+	_update_depth_order()
+
+
+func _chase_direction(heading: Vector2, distance: float) -> Vector2:
+	if not _area:
+		return heading
+	var look_ahead := minf(LIGHT_LOOK_AHEAD, distance)
+	for angle in [0.0, PI / 4.0, -PI / 4.0, PI / 2.0, -PI / 2.0]:
+		var direction := heading.rotated(angle)
+		var probe := global_position + direction * look_ahead
+		if _inside_area(probe) and _area.get_path_light_exposure(probe) <= 0.0:
+			return direction
+	return Vector2.ZERO
+
+
+func _direction_away_from_light() -> Vector2:
+	var preferred := velocity.normalized() if not velocity.is_zero_approx() else Vector2.UP
+	var best_direction := Vector2.ZERO
+	var best_exposure := INF
+	for index in range(8):
+		var direction := preferred.rotated(float(index) * TAU / 8.0)
+		var probe := global_position + direction * LIGHT_LOOK_AHEAD
+		if not _inside_area(probe):
+			continue
+		var exposure := _area.get_path_light_exposure(probe)
+		if exposure < best_exposure - 0.001:
+			best_exposure = exposure
+			best_direction = direction
+	return best_direction
+
+
+func _inside_area(point: Vector2) -> bool:
+	return Rect2(Vector2.ZERO, _area.area_size).grow(-AREA_MARGIN).has_point(_area.to_local(point))
+
 
 func _update_movement_animation(delta: float, move_direction: Vector2) -> void:
 	if move_direction.is_zero_approx():
@@ -131,8 +482,9 @@ func _stop_movement_animation() -> void:
 	sprite.texture = _idle_texture
 
 func take_damage(damage: int, attacker_position: Vector2) -> void:
-	if not is_alive or damage <= 0:
+	if not _active or not is_alive or damage <= 0:
 		return
+	_clear_attack()
 	health = maxi(0, health - damage)
 	if health == 0:
 		_die()
@@ -151,29 +503,37 @@ func take_damage(damage: int, attacker_position: Vector2) -> void:
 
 func _die() -> void:
 	is_alive = false
-	target = null
-	velocity = Vector2.ZERO
-	body_shape.set_deferred("disabled", true)
-	sight_shape.set_deferred("disabled", true)
-	sprite.visible = false
+	_apply_active(false)
+	if core_light_amount <= 0:
+		return
+	var core := LIGHT_CORE.new()
+	var core_parent := _area if _area else get_parent() as Node2D
+	if not core_parent:
+		core.free()
+		return
+	core.name = "LightCore"
+	core.light_amount = core_light_amount
+	core.glow_color = glow_color
+	core.z_as_relative = false
+	core.z_index = z_index + 1
+	core.position = core_parent.to_local(global_position)
+	core_parent.add_child(core, true)
+
 
 func _on_sight_body_entered(body: Node2D) -> void:
-	if is_alive and body.is_in_group("map_player"):
+	if _active and is_alive and body.is_in_group("map_player"):
 		target = body
 		_stop_movement_animation()
 
 func _on_sight_body_exited(body: Node2D) -> void:
-	if body == target and is_alive:
+	if body == target:
 		target = null
 		velocity = Vector2.ZERO
 		_stop_movement_animation()
 
 func _update_depth_order() -> void:
-	var sprite_bottom := sprite.position.y + sprite.texture.get_height() * sprite.scale.y * 0.5
+	var sprite_bottom := _sprite_rest_position.y + sprite.texture.get_height() * sprite.scale.y * 0.5
 	var sort_y := global_position.y + sprite_bottom
-	var ancestor := get_parent()
-	while ancestor and not ancestor is MapArea:
-		ancestor = ancestor.get_parent()
-	if ancestor is MapArea:
-		sort_y -= (ancestor as MapArea).global_position.y
+	if _area:
+		sort_y -= _area.global_position.y
 	z_index = clampi(roundi(sort_y / 8.0), 1, 256)

@@ -5,6 +5,7 @@ class_name MapArea
 signal layout_changed
 
 const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
+const FOREST_PATH_ATLAS := "res://Tiles/Atlases/forest_paths.png"
 
 @export var area_label := "NEW AREA":
 	set(value):
@@ -22,6 +23,7 @@ const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
 @export_group("Path Lights")
 @export_range(0, 255, 1) var path_tile_source_id := 0
 @export var path_tile_atlas_coords := Vector2i(0, 3)
+@export_range(0.75, 2.0, 0.05) var path_light_repel_tiles := 0.9
 
 @export_group("Ground Appearance")
 @export_range(1.0, 1.5, 0.01) var floor_saturation := 1.15
@@ -109,17 +111,36 @@ const FLOOR_SATURATION_SHADER := preload("res://floor_saturation.gdshader")
 
 const MAJOR_GRID_EVERY := 4
 var _snapping := false
+var _lit_path_cells: Dictionary[Vector2i, bool] = {}
 
 func is_path_tile(cell: Vector2i) -> bool:
 	var ground := get_node_or_null("GroundArt") as TileMapLayer
-	if not ground or ground.get_cell_source_id(cell) == -1:
+	if not ground:
 		return false
-	var tile_data := ground.get_cell_tile_data(cell)
-	if tile_data and ground.tile_set:
-		var type_layer := ground.tile_set.get_custom_data_layer_by_name("tile_type")
-		if type_layer >= 0:
-			return str(tile_data.get_custom_data("tile_type")).to_lower() == "path"
-	return ground.get_cell_source_id(cell) == path_tile_source_id and ground.get_cell_atlas_coords(cell) == path_tile_atlas_coords
+	if _is_path_on_layer(ground, cell):
+		return true
+	var overlay := get_node_or_null("WorldArt") as TileMapLayer
+	if not overlay:
+		return false
+	var center := ground.to_global(ground.map_to_local(cell))
+	return _is_path_on_layer(overlay, overlay.local_to_map(overlay.to_local(center)))
+
+
+func _is_path_on_layer(layer: TileMapLayer, cell: Vector2i) -> bool:
+	var source_id := layer.get_cell_source_id(cell)
+	if source_id < 0 or not layer.tile_set:
+		return false
+	var tile_data := layer.get_cell_tile_data(cell)
+	var type_layer := layer.tile_set.get_custom_data_layer_by_name("tile_type")
+	if tile_data and type_layer >= 0:
+		var tile_type := str(tile_data.get_custom_data_by_layer_id(type_layer)).to_lower()
+		if not tile_type.is_empty():
+			return tile_type == "path"
+	var source := layer.tile_set.get_source(source_id) as TileSetAtlasSource
+	if source and source.texture and source.texture.resource_path == FOREST_PATH_ATLAS:
+		return true
+	return source_id == path_tile_source_id and layer.get_cell_atlas_coords(cell) == path_tile_atlas_coords
+
 
 func get_light_container() -> Node2D:
 	var ground := get_node_or_null("GroundArt") as TileMapLayer
@@ -134,20 +155,32 @@ func get_light_container() -> Node2D:
 	return container
 
 func has_light_pair_for_path(cell: Vector2i) -> bool:
-	var container := get_light_container()
-	if not container:
-		return false
-	var cells: Array = container.get_meta("lit_path_cells", [])
-	return cells.has(cell)
+	return _lit_path_cells.has(cell)
+
 
 func mark_path_lit(cell: Vector2i) -> void:
-	var container := get_light_container()
-	if not container:
-		return
-	var cells: Array = container.get_meta("lit_path_cells", [])
-	if not cells.has(cell):
-		cells.append(cell)
-	container.set_meta("lit_path_cells", cells)
+	_lit_path_cells[cell] = true
+
+
+func get_path_light_exposure(world_point: Vector2) -> float:
+	if _lit_path_cells.is_empty():
+		return 0.0
+	var ground := get_node_or_null("GroundArt") as TileMapLayer
+	if not ground or not ground.tile_set:
+		return 0.0
+	var point := ground.to_local(world_point)
+	var cell := ground.local_to_map(point)
+	var tile_size := Vector2(ground.tile_set.tile_size)
+	var radius := maxf(tile_size.x, tile_size.y) * path_light_repel_tiles
+	var search := Vector2i((Vector2.ONE * radius / tile_size).ceil())
+	var exposure := 0.0
+	for y in range(cell.y - search.y, cell.y + search.y + 1):
+		for x in range(cell.x - search.x, cell.x + search.x + 1):
+			var nearby := Vector2i(x, y)
+			if _lit_path_cells.has(nearby):
+				exposure += maxf(0.0, 1.0 - point.distance_to(ground.map_to_local(nearby)) / radius)
+	return exposure
+
 
 func get_pathway_centers(side: String) -> Array[float]:
 	var centers: Array[float] = []
@@ -218,10 +251,10 @@ func _apply_floor_saturation() -> void:
 	var ground := get_node_or_null("GroundArt") as TileMapLayer
 	if not ground:
 		return
-	var material := ShaderMaterial.new()
-	material.shader = FLOOR_SATURATION_SHADER
-	material.set_shader_parameter("saturation", floor_saturation)
-	ground.material = material
+	var floor_material := ShaderMaterial.new()
+	floor_material.shader = FLOOR_SATURATION_SHADER
+	floor_material.set_shader_parameter("saturation", floor_saturation)
+	ground.material = floor_material
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSFORM_CHANGED and Engine.is_editor_hint() and snap_to_neighbors and not _snapping:

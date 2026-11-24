@@ -17,6 +17,11 @@ radius = 320.0
 collision_layer = 2
 script = ExtResource("1_j5scw")
 display_name = "Jumper"
+attack_range = 230.0
+attack_windup = 0.43
+attack_pattern = 1
+attack_travel_time = 0.4
+attack_impact_radius = 78.0
 walk_frames = Array[Texture2D]([ExtResource("2_1poyr"), ExtResource("3_pci8w"), ExtResource("4_fbow8"), ExtResource("5_io18n")])
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=997570214]

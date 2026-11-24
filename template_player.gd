@@ -72,6 +72,8 @@ const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 const PLAYER_SIZE := Vector2(110.0, 185.0)
 const PLAYER_FEET_OFFSET := Vector2(0.0, PLAYER_SIZE.y * 0.5)
+const BLADE_WIDTH := 10.0
+const BLADE_PIVOT_DISTANCE := 22.0
 
 @export_group("Minimap")
 @export var minimap_enabled := true
@@ -123,19 +125,19 @@ var _dash_direction := Vector2.DOWN
 var _dash_time_left := 0.0
 var _dash_cooldown_left := 0.0
 var _damage_invulnerability_left := 0.0
-var _sword_hit_shape := CircleShape2D.new()
+var _sword_hit_shape := CapsuleShape2D.new()
 
 func _ready() -> void:
 	var pause_layer := CanvasLayer.new()
 	pause_layer.name = "PauseMenuLayer"
 	pause_layer.layer = 20
-	get_tree().root.add_child(pause_layer)
+	add_child(pause_layer)
 	pause_layer.add_child(PAUSE_MENU_SCENE.instantiate())
 	z_as_relative = false
 	if legacy_hitbox:
 		legacy_hitbox.monitoring = false
 		legacy_hitbox.monitorable = false
-	_sword_hit_shape.radius = 30.0
+	_sword_hit_shape.radius = BLADE_WIDTH * 0.5
 	_update_player_sprite()
 	add_to_group("map_player")
 	light_count = starting_light_count
@@ -208,9 +210,9 @@ func _process(delta: float) -> void:
 	_update_depth_order()
 	queue_redraw()
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if is_attacking:
-		_apply_sword_hit()
+		_advance_swing(delta)
 
 func get_depth_sort_y() -> float:
 	return global_position.y + PLAYER_SIZE.y * 0.5
@@ -297,7 +299,7 @@ func set_health(value: float) -> void:
 func take_damage(amount: float) -> void:
 	if amount <= 0.0 or health_current <= 0.0 or _damage_invulnerability_left > 0.0:
 		return
-	if Input.is_key_pressed(KEY_SHIFT) and _dash_time_left > 0.0:
+	if _dash_time_left > 0.0:
 		return
 	set_health(health_current - amount)
 	_damage_invulnerability_left = damage_invulnerability_duration
@@ -456,6 +458,10 @@ func _create_player_hud() -> void:
 	player_hud.set_script(PLAYER_HUD_SCRIPT)
 	canvas.add_child(player_hud)
 	player_hud.call("configure", player_hud_style, health_current, health_max, sleep_current, sleep_max, light_count)
+	var cycle := get_tree().get_first_node_in_group("day_night_cycle") as DayNightCycle
+	if cycle:
+		cycle.clock_changed.connect(Callable(player_hud, "set_world_time"))
+		player_hud.call("set_world_time", cycle.hour, cycle.is_night, cycle.day_number, cycle.permanent_night)
 	var inventory := get_node_or_null("PlayerInventory") as PlayerInventory
 	if inventory and not inventory.item_added.is_connected(_on_inventory_item_added):
 		inventory.item_added.connect(_on_inventory_item_added)
@@ -559,70 +565,83 @@ func _stop_run_animation() -> void:
 	_run_animation_frame = 0
 
 func attack() -> void:
-	if is_attacking:
+	if is_attacking or transitioning:
 		return
 	is_attacking = true
 	_swing_direction = facing_direction
 	_swing_progress = 0.0
 	_hit_targets.clear()
-	var swing_tween := create_tween()
-	swing_tween.tween_method(_set_swing_progress, 0.0, 1.0, attack_duration)
-	swing_tween.finished.connect(_finish_swing)
+	queue_redraw()
 
-func _apply_sword_hit() -> void:
-	if _swing_progress < 0.0:
+
+func _advance_swing(delta: float) -> void:
+	if transitioning or _swing_progress >= 1.0:
+		is_attacking = false
+		_swing_progress = -1.0
+		queue_redraw()
 		return
-	var facing_angle := _swing_direction.angle()
-	var swing_start := facing_angle - deg_to_rad(attack_arc_degrees * 0.5)
-	var swing_end := facing_angle + deg_to_rad(attack_arc_degrees * 0.5)
-	var blade_angle := lerpf(swing_start, swing_end, clampf(_swing_progress, 0.0, 1.0))
-	var blade_radius := attack_reach * (0.74 + 0.08 * sin(_swing_progress * PI))
+	var next_progress := minf(1.0, _swing_progress + delta / attack_duration)
+	# Sample the swept blade so a target cannot slip between physics ticks.
+	var swing_distance := deg_to_rad(attack_arc_degrees) * (attack_reach * 0.82 + 22.0)
+	var samples := maxi(1, ceili((next_progress - _swing_progress) * swing_distance / (BLADE_WIDTH * 0.5)))
+	for index in range(samples + 1):
+		var progress := lerpf(_swing_progress, next_progress, float(index) / float(samples))
+		_apply_sword_hit(progress)
+	_swing_progress = next_progress
+	queue_redraw()
+
+
+func _blade_angle(progress: float) -> float:
+	return _swing_direction.angle() + deg_to_rad(attack_arc_degrees) * (progress - 0.5)
+
+
+func _blade_radius(progress: float) -> float:
+	return attack_reach * (0.74 + 0.08 * sin(progress * PI))
+
+
+func _blade_segment(progress: float) -> PackedVector2Array:
+	var pivot := _swing_direction * BLADE_PIVOT_DISTANCE
+	var heading := Vector2.from_angle(_blade_angle(progress))
+	var radius := _blade_radius(progress)
+	return PackedVector2Array([pivot + heading * (radius - 18.0), pivot + heading * (radius + 22.0)])
+
+
+func _apply_sword_hit(progress: float) -> void:
+	var blade := _blade_segment(progress)
+	var start := to_global(blade[0])
+	var end := to_global(blade[1])
+	_sword_hit_shape.height = start.distance_to(end) + BLADE_WIDTH
 	var query := PhysicsShapeQueryParameters2D.new()
 	query.shape = _sword_hit_shape
-	query.transform = Transform2D(0.0, global_position + Vector2.RIGHT.rotated(blade_angle) * blade_radius)
+	query.transform = Transform2D((end - start).angle() - PI * 0.5, (start + end) * 0.5)
 	query.collision_mask = 2
 	query.collide_with_bodies = true
 	query.collide_with_areas = false
 	for result in get_world_2d().direct_space_state.intersect_shape(query, 32):
 		var body := result.get("collider") as Node2D
-		if not body or not body.name.to_lower().begins_with("monster") or not body.has_method("take_damage"):
+		if not body or not body.is_in_group("monsters") or not body.has_method("take_damage"):
 			continue
 		var target_id := body.get_instance_id()
 		if _hit_targets.has(target_id):
 			continue
-		var to_target := body.global_position - global_position
-		if to_target.is_zero_approx():
-			continue
-		if to_target.normalized().dot(_swing_direction) < cos(deg_to_rad(attack_arc_degrees * 0.5 + 20.0)):
-			continue
 		_hit_targets[target_id] = true
 		body.call("take_damage", attack_damage, global_position)
 
-func _set_swing_progress(value: float) -> void:
-	_swing_progress = value
-	queue_redraw()
-
-func _finish_swing() -> void:
-	is_attacking = false
-	_swing_progress = -1.0
-	queue_redraw()
 
 func _draw_sword_swing() -> void:
 	if _swing_progress < 0.0:
 		return
-	var facing_angle := _swing_direction.angle()
-	var start_angle := facing_angle - deg_to_rad(attack_arc_degrees * 0.5)
-	var end_angle := facing_angle + deg_to_rad(attack_arc_degrees * 0.5)
-	var trail_radius := attack_reach * (0.74 + 0.08 * sin(_swing_progress * PI))
+	var blade := _blade_segment(_swing_progress)
 	var trail_alpha := 0.85 * (1.0 - _swing_progress * 0.55)
-	var center := _swing_direction * 22.0
-	draw_arc(center, trail_radius, start_angle, end_angle, 28, Color(0.45, 0.88, 1.0, trail_alpha), 12.0, true)
-	var blade_angle := lerpf(start_angle, end_angle, _swing_progress)
-	var blade_direction := Vector2.RIGHT.rotated(blade_angle)
-	var blade_start := center + blade_direction * (trail_radius - 18.0)
-	var blade_end := center + blade_direction * (trail_radius + 22.0)
-	draw_line(blade_start, blade_end, Color(0.08, 0.14, 0.2, trail_alpha), 10.0, true)
-	draw_line(blade_start, blade_end, Color(0.9, 0.98, 1.0, trail_alpha), 5.0, true)
+	if _swing_progress > 0.0:
+		draw_arc(_swing_direction * BLADE_PIVOT_DISTANCE, _blade_radius(_swing_progress), _blade_angle(0.0),
+			_blade_angle(_swing_progress), 24, Color(0.45, 0.88, 1.0, trail_alpha * 0.35), 6.0, true)
+	var edge := Color(0.08, 0.14, 0.2, trail_alpha)
+	draw_line(blade[0], blade[1], edge, BLADE_WIDTH, true)
+	draw_circle(blade[0], BLADE_WIDTH * 0.5, edge, true, -1.0, true)
+	draw_circle(blade[1], BLADE_WIDTH * 0.5, edge, true, -1.0, true)
+	draw_line(blade[0], blade[1], Color(0.9, 0.98, 1.0, trail_alpha), 5.0, true)
+
 
 func _start_dash() -> void:
 	if _dash_cooldown_left > 0.0 or _dash_time_left > 0.0 or transitioning:

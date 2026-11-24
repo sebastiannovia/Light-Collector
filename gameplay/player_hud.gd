@@ -7,6 +7,8 @@ var health_max := 100.0
 var sleep := 100.0
 var sleep_max := 100.0
 var lights := 0
+var _clock_text := ""
+var _clock_night := false
 var _notifications: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -61,7 +63,34 @@ func _draw() -> void:
 	if not style:
 		return
 	_draw_status_hud()
+	_draw_world_clock()
 	_draw_notifications()
+
+
+func set_world_time(hour: float, is_night: bool, day_number: int, permanent_night: bool) -> void:
+	if permanent_night:
+		_clock_text = "Permanent night"
+	else:
+		var minute_of_day := floori(hour * 60.0)
+		var phase := "Night" if is_night else "Day"
+		_clock_text = "%s %d  %02d:%02d" % [phase, day_number, floori(hour), minute_of_day % 60]
+	_clock_night = is_night
+	queue_redraw()
+
+
+func _draw_world_clock() -> void:
+	if _clock_text.is_empty():
+		return
+	var origin := style.status_position + Vector2(0.0, style.status_panel_size.y + 6.0)
+	var font: Font = style.status_font if style.status_font else ThemeDB.fallback_font
+	var font_size := style.status_font_size
+	var caption := _clock_text
+	var text_width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var panel_size := Vector2(text_width + style.status_padding * 2.0, font.get_height(font_size) + 12.0)
+	var border := Color("687aab") if _clock_night else style.status_border_color
+	draw_style_box(_make_panel_style(style.status_panel_color, border, style.status_border_width, style.status_corner_radius), Rect2(origin, panel_size))
+	draw_string(font, origin + Vector2(style.status_padding, 6.0 + font.get_ascent(font_size)), caption, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, style.status_text_color)
+
 
 func _draw_status_hud() -> void:
 	var panel_rect := Rect2(style.status_position, style.status_panel_size)

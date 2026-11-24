@@ -49,6 +49,7 @@
 [ext_resource type="Texture2D" uid="uid://brk7g4jydsbma" path="res://Assets/Stumps/forest_treestump_02.png" id="45_p8nbv"]
 [ext_resource type="Texture2D" uid="uid://cna4siy3g2mmx" path="res://Assets/Stumps/forest_talltreestump_01.png" id="46_4ml28"]
 [ext_resource type="Texture2D" uid="uid://cbf4e4aun4mqq" path="res://Assets/Stumps/forest_treestump_03.png" id="47_o1hsi"]
+[ext_resource type="Script" uid="uid://ckl76wnd1kiqc" path="res://gameplay/day_night_cycle.gd" id="50_1xpl3"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yu6lc"]
 texture = ExtResource("3_xtgk2")
@@ -10478,3 +10479,6 @@ definition_paths = Array[String](["res://gameplay/items/wood.tres", "res://gamep
 
 [node name="Player" parent="." unique_id=163405111 instance=ExtResource("11_qb0cc")]
 position = Vector2(1950, 1120)
+
+[node name="DayNight" type="CanvasModulate" parent="." unique_id=241110692]
+script = ExtResource("50_1xpl3")
