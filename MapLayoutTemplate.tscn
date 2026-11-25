@@ -49,6 +49,7 @@
 [ext_resource type="Texture2D" uid="uid://brk7g4jydsbma" path="res://Assets/Stumps/forest_treestump_02.png" id="45_p8nbv"]
 [ext_resource type="Texture2D" uid="uid://cna4siy3g2mmx" path="res://Assets/Stumps/forest_talltreestump_01.png" id="46_4ml28"]
 [ext_resource type="Texture2D" uid="uid://cbf4e4aun4mqq" path="res://Assets/Stumps/forest_treestump_03.png" id="47_o1hsi"]
+[ext_resource type="PackedScene" uid="uid://cwq35dgypnyyl" path="res://gameplay/MainBoss/MainBoss.tscn" id="48_uo6d2"]
 [ext_resource type="Script" uid="uid://ckl76wnd1kiqc" path="res://gameplay/day_night_cycle.gd" id="50_1xpl3"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yu6lc"]
@@ -170,7 +171,7 @@ tile_set = SubResource("TileSet_r5mv7")
 
 [node name="WorldArt" type="TileMapLayer" parent="MapAreas/Main Base" unique_id=457740138]
 y_sort_enabled = true
-tile_map_data = PackedByteArray("AAAHAAAAAgABAAEAAAAHAAgABAAAAAEAAAAIAAgABAACAAEAAAAJAAgABAACAAEAAAAKAAgABAACAAEAAAALAAgABAACAAEAAAAMAAgABAACAAEAAAANAAgABAACAAEAAAAOAAgABAACAAEAAAAGAAgABAABAAAAAAAFAAgABAABAAEAAAAEAAgABAACAAAAAAACAAgABAAAAAAAAAADAAgABAABAAAAAAABAAgABAACAAAAAAAAAAgABAABAAAAAAAAAAcAAwABAAAAAAAAAAYAAwACAAAAAAAAAAUAAwABAAAAAAAAAAMAAwAAAAAAAAAAAAIAAwABAAAAAAAAAAEAAwACAAAAAAAAAAAAAgABAAAAAAAOAAEAAwABAAEAAAAOAAIAAwADAAEAAAAOAAMAAwACAAEAAAAOAAUAAwABAAEAAAAOAAYAAwABAAEAAAAOAAcAAwADAAEAAAAIAAAAAgACAAEAAAAJAAAAAgAAAAEAAAAKAAAAAgABAAAAAAALAAAAAgACAAAAAAAMAAAAAgAAAAEAAAANAAAAAgABAAAAAAAOAAAAAgACAAAAAAAGAAAAAgAAAAAAAAAFAAAAAgACAAAAAAAEAAAAAgABAAAAAAADAAAAAgAAAAAAAAACAAAAAgACAAEAAAABAAAAAgABAAAAAAA=")
+tile_map_data = PackedByteArray("AAAHAAAAAgABAAEAAAA=")
 tile_set = ExtResource("4_o2kl1")
 
 [node name="monster_jumper" parent="MapAreas/Main Base" unique_id=1878941016 instance=ExtResource("10_pdi3m")]
@@ -8386,6 +8387,9 @@ tile_set = ExtResource("3_tiles")
 [node name="PathGuides" type="Node2D" parent="MapAreas/Boss Cave" unique_id=1046563204]
 z_index = 10
 script = ExtResource("4_guides")
+
+[node name="MainBoss" parent="MapAreas/Boss Cave" unique_id=1082814814 instance=ExtResource("48_uo6d2")]
+position = Vector2(5760, 5200)
 
 [node name="Forest5" type="Node2D" parent="MapAreas" unique_id=1291190922 groups=["map_areas"]]
 position = Vector2(-11520, -2160)

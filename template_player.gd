@@ -140,6 +140,7 @@ const BLADE_PIVOT_DISTANCE := 22.0
 
 var current_area: MapArea
 var transitioning := false
+var movement_bounds := Rect2()
 var minimap_view: Control
 var light_count := 0
 var player_hud: Control
@@ -228,6 +229,8 @@ func _process(delta: float) -> void:
 	if _dash_time_left > 0.0:
 		movement = _dash_direction * dash_speed
 	var destination := global_position + movement * delta
+	if movement_bounds.has_area():
+		destination = destination.clamp(movement_bounds.position, movement_bounds.end)
 
 	if destination.x < current_area.global_position.x:
 		var neighbor := _neighbor_for_exit(current_area, "west", destination)

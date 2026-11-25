@@ -6,7 +6,6 @@ const WORLD_GLOW := preload("res://gameplay/world_glow.gd")
 const LIGHT_CORE := preload("res://gameplay/Monsters/monster_light_core.gd")
 const LIGHT_LOOK_AHEAD := 64.0
 const AREA_MARGIN := 48.0
-const ATTACK_FLASH_TIME := 0.10
 const ATTACK_PATH_STEP := 16.0
 
 @export_group("Monster")
@@ -49,7 +48,6 @@ var is_alive := true
 var target: Node2D
 var _attack_cooldown_left := 0.0
 var _attack_windup_left := 0.0
-var _attack_flash_left := 0.0
 var _attack_target: Node2D
 var _leap_collision_exception: PhysicsBody2D
 var _attack_origin := Vector2.ZERO
@@ -58,8 +56,6 @@ var _attack_heading := Vector2.RIGHT
 var _attack_travel_left := 0.0
 var _charge_hit := false
 var _sprite_rest_position := Vector2.ZERO
-var _attack_warning: Node2D
-var _idle_modulate: Color
 var _knockback_tween: Tween
 var _idle_texture: Texture2D
 var _active_animation_frames: Array[Texture2D] = []
@@ -81,7 +77,6 @@ var _glow_time := 0.0
 func _ready() -> void:
 	health = starting_health
 	_idle_texture = sprite.texture
-	_idle_modulate = sprite.self_modulate
 	_sprite_rest_position = sprite.position
 	add_to_group("monsters")
 	if not sight_area.body_entered.is_connected(_on_sight_body_entered):
@@ -102,16 +97,6 @@ func _ready() -> void:
 	z_as_relative = false
 	_glow = WORLD_GLOW.make_light(158.0, glow_color, glow_intensity)
 	sprite.add_child(_glow)
-	_attack_warning = Node2D.new()
-	_attack_warning.name = "AttackWarning"
-	_attack_warning.z_as_relative = false
-	_attack_warning.z_index = 1
-	var warning_material := CanvasItemMaterial.new()
-	warning_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
-	_attack_warning.material = warning_material
-	_attack_warning.hide()
-	_attack_warning.draw.connect(_draw_attack_warning)
-	add_child(_attack_warning)
 	_update_depth_order()
 	_apply_active(false)
 	_bind_cycle.call_deferred()
@@ -178,9 +163,6 @@ func _physics_process(delta: float) -> void:
 	if not _active:
 		return
 	_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
-	if _attack_flash_left > 0.0:
-		_attack_flash_left = maxf(0.0, _attack_flash_left - delta)
-		_update_attack_warning()
 	_glow_time += delta
 	_glow.energy = glow_intensity * (0.92 + 0.08 * sin(_glow_time * 3.0))
 	if _area and _area.get_path_light_exposure(global_position) > 0.0:
@@ -231,7 +213,6 @@ func _begin_attack(offset: Vector2) -> bool:
 	_attack_windup_left = attack_windup
 	_charge_hit = false
 	_hold_attack_pose()
-	_update_attack_warning()
 	return true
 
 
@@ -270,7 +251,6 @@ func _advance_windup(delta: float) -> void:
 			if _leap_collision_exception:
 				add_collision_exception_with(_leap_collision_exception)
 		_attack_travel_left = attack_travel_time
-	_update_attack_warning()
 
 
 func _advance_attack_travel(delta: float) -> void:
@@ -293,7 +273,6 @@ func _advance_attack_travel(delta: float) -> void:
 			_hit_attack_circle(global_position, attack_impact_radius)
 		_finish_attack()
 		return
-	_update_attack_warning()
 
 
 func _hit_attack_circle(center: Vector2, radius: float) -> void:
@@ -326,8 +305,6 @@ func _finish_attack() -> void:
 	_clear_attack()
 	_stop_movement_animation()
 	_attack_cooldown_left = attack_cooldown
-	_attack_flash_left = ATTACK_FLASH_TIME
-	_update_attack_warning()
 	_update_depth_order()
 
 
@@ -338,62 +315,7 @@ func _clear_attack() -> void:
 	_attack_target = null
 	_attack_windup_left = 0.0
 	_attack_travel_left = 0.0
-	_attack_flash_left = 0.0
 	sprite.position = _sprite_rest_position
-	_update_attack_warning()
-
-
-func _update_attack_warning() -> void:
-	var warning_active := _attack_windup_left > 0.0 or _attack_travel_left > 0.0 or _attack_flash_left > 0.0
-	_attack_warning.visible = warning_active
-	sprite.self_modulate = _idle_modulate
-	if warning_active:
-		var progress := 1.0 - _attack_windup_left / attack_windup
-		sprite.self_modulate = _idle_modulate.lerp(Color("ffac76"), lerpf(0.25, 0.65, progress))
-		_attack_warning.queue_redraw()
-
-
-func _draw_attack_warning() -> void:
-	var impact := _attack_flash_left > 0.0
-	var progress := 1.0 - _attack_windup_left / attack_windup
-	var outline := Color("ff7a53") if impact else Color("ffc975")
-	match attack_pattern:
-		AttackPattern.LEAP:
-			_draw_attack_circle(_attack_warning.to_local(_attack_destination), attack_impact_radius, outline, progress)
-		AttackPattern.CHARGE:
-			_draw_charge_warning(outline, impact, progress)
-		_:
-			_draw_attack_circle(Vector2.ZERO, attack_range, outline, progress)
-
-
-func _draw_attack_circle(center: Vector2, radius: float, outline: Color, progress: float) -> void:
-	_attack_warning.draw_circle(center, radius, Color(outline, 0.12), true, -1.0, true)
-	_attack_warning.draw_circle(center, radius * progress, Color(outline, 0.25), true, -1.0, true)
-	_attack_warning.draw_arc(center, radius, 0.0, TAU, 64, outline, 3.0, true)
-
-
-func _draw_charge_warning(outline: Color, impact: bool, progress: float) -> void:
-	var lead := _attack_heading * charge_tusk_offset
-	var nose := _attack_warning.to_local(global_position + lead)
-	if impact or _attack_travel_left > 0.0:
-		_draw_attack_circle(nose, attack_impact_radius, outline, 1.0)
-		return
-	var start := _attack_warning.to_local(_attack_origin + lead)
-	var end := _attack_warning.to_local(_attack_destination + lead)
-	var side := _attack_heading.orthogonal() * attack_impact_radius
-	_attack_warning.draw_line(start, end, Color(outline, 0.16), attack_impact_radius * 2.0)
-	_attack_warning.draw_circle(start, attack_impact_radius, Color(outline, 0.16))
-	_attack_warning.draw_circle(end, attack_impact_radius, Color(outline, 0.16))
-	_attack_warning.draw_line(start + side, end + side, outline, 3.0, true)
-	_attack_warning.draw_line(start - side, end - side, outline, 3.0, true)
-	_attack_warning.draw_arc(start, attack_impact_radius, _attack_heading.angle() + PI * 0.5,
-		_attack_heading.angle() + PI * 1.5, 24, outline, 3.0, true)
-	_attack_warning.draw_arc(end, attack_impact_radius, _attack_heading.angle() - PI * 0.5,
-		_attack_heading.angle() + PI * 0.5, 24, outline, 3.0, true)
-	var arrow := start.lerp(end, progress)
-	var notch := _attack_heading * 26.0
-	var wing := _attack_heading.orthogonal() * 20.0
-	_attack_warning.draw_polyline(PackedVector2Array([arrow - notch + wing, arrow, arrow - notch - wing]), outline, 4.0, true)
 
 
 func _move_in_direction(direction: Vector2, delta: float) -> void:

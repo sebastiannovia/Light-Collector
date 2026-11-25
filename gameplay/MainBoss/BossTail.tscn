@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://ccjc2e34pm6yx"]
+
+[ext_resource type="Script" uid="uid://ddgf4kp1qiikl" path="res://gameplay/MainBoss/boss_tail.gd" id="1_el8xg"]
+[ext_resource type="Texture2D" uid="uid://dgsg3jowrrn7b" path="res://Assets/MainBoss/boss_tail_placeholder.png" id="2_r4gs0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j2isf"]
+size = Vector2(350, 416)
+
+[node name="BossTail" type="StaticBody2D" unique_id=1603387546 groups=["monsters"]]
+z_index = 12
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_el8xg")
+eye_texture = ExtResource("2_r4gs0")
+mouth_texture = ExtResource("2_r4gs0")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=203710820]
+texture = ExtResource("2_r4gs0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1058587407]
+shape = SubResource("RectangleShape2D_j2isf")
+disabled = true

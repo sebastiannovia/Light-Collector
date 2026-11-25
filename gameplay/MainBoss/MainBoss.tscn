@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://cwq35dgypnyyl"]
+
+[ext_resource type="Script" uid="uid://jajyo7qx50bd" path="res://gameplay/MainBoss/main_boss.gd" id="1_ucsil"]
+[ext_resource type="Texture2D" uid="uid://blrvbqncx4haw" path="res://Assets/MainBoss/boss_body_placeholder.png" id="2_g5oj0"]
+[ext_resource type="PackedScene" uid="uid://ccjc2e34pm6yx" path="res://gameplay/MainBoss/BossTail.tscn" id="3_4bqvr"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_hicwj"]
+light_mode = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r3hph"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.1254902, 0.09411765, 0.17254902, 0.91764706)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5058824, 0.4, 0.6117647, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="MainBoss" type="Node2D" unique_id=1082814814]
+script = ExtResource("1_ucsil")
+
+[node name="BackTails" type="Sprite2D" parent="." unique_id=572946437]
+z_index = 2
+position = Vector2(0, -362)
+
+[node name="Body" type="Sprite2D" parent="." unique_id=394743460]
+z_index = 4
+position = Vector2(0, -242)
+texture = ExtResource("2_g5oj0")
+
+[node name="EyeTail" parent="." unique_id=1603387546 instance=ExtResource("3_4bqvr")]
+modulate = Color(0.8627451, 1, 1, 1)
+position = Vector2(650, 45)
+
+[node name="MouthTail" parent="." unique_id=883865029 instance=ExtResource("3_4bqvr")]
+modulate = Color(1, 0.84705883, 0.8117647, 1)
+position = Vector2(-650, 45)
+
+[node name="AttackEffects" type="Node2D" parent="." unique_id=1085838081]
+z_index = 340
+z_as_relative = false
+material = SubResource("CanvasItemMaterial_hicwj")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=494557612]
+layer = 8
+
+[node name="BossPanel" type="PanelContainer" parent="HUD" unique_id=1430386781]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -218.0
+offset_top = 24.0
+offset_right = 218.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_r3hph")
+
+[node name="Content" type="VBoxContainer" parent="HUD/BossPanel" unique_id=906095154]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="HUD/BossPanel/Content" unique_id=592232139]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "The Hollow Fox"
+horizontal_alignment = 1
+
+[node name="Detail" type="Label" parent="HUD/BossPanel/Content" unique_id=1277897889]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Eye tails: 3     •     Mouth tails: 3"
+horizontal_alignment = 1
