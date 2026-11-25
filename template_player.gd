@@ -77,6 +77,13 @@ const PLAYER_DOWN_RUN_FRAMES: Array[Texture2D] = [
 	preload("res://Assets/Animations/Character/mc_walking_to_you7.png"),
 	preload("res://Assets/Animations/Character/mc_walking_to_you8.png"),
 ]
+const PLAYER_SIDE_ATTACK_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/attack_side_1.png"),
+	preload("res://Assets/Animations/Character/attack_side_2.png"),
+	preload("res://Assets/Animations/Character/attack_side_3.png"),
+	preload("res://Assets/Animations/Character/attack_side_4.png"),
+	preload("res://Assets/Animations/Character/attack_side_5.png"),
+]
 const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 @export var move_speed := 420.0
@@ -157,6 +164,7 @@ var _idle_animation_frame := 0
 var _idle_animation_frames: Array[Texture2D] = []
 var _swing_direction := Vector2.DOWN
 var _swing_progress := -1.0
+var _attack_sprite_texture: Texture2D
 var _dash_direction := Vector2.DOWN
 var _dash_time_left := 0.0
 var _dash_cooldown_left := 0.0
@@ -214,17 +222,18 @@ func _process(delta: float) -> void:
 	var direction := Vector2(horizontal, vertical).normalized()
 	if not direction.is_zero_approx():
 		facing_direction = direction
-	if direction.is_zero_approx():
-		_stop_run_animation()
-		_advance_idle_animation(delta)
-	elif absf(direction.x) > absf(direction.y):
-		_stop_idle_animation()
-		var run_frames := PLAYER_LEFT_RUN_FRAMES if direction.x < 0.0 else PLAYER_RIGHT_RUN_FRAMES
-		_advance_run_animation(delta, run_frames)
-	else:
-		_stop_idle_animation()
-		var run_frames := PLAYER_UP_RUN_FRAMES if direction.y < 0.0 else PLAYER_DOWN_RUN_FRAMES
-		_advance_run_animation(delta, run_frames)
+	if not is_attacking:
+		if direction.is_zero_approx():
+			_stop_run_animation()
+			_advance_idle_animation(delta)
+		elif absf(direction.x) > absf(direction.y):
+			_stop_idle_animation()
+			var run_frames := PLAYER_LEFT_RUN_FRAMES if direction.x < 0.0 else PLAYER_RIGHT_RUN_FRAMES
+			_advance_run_animation(delta, run_frames)
+		else:
+			_stop_idle_animation()
+			var run_frames := PLAYER_UP_RUN_FRAMES if direction.y < 0.0 else PLAYER_DOWN_RUN_FRAMES
+			_advance_run_animation(delta, run_frames)
 	var movement := direction * move_speed
 	if _dash_time_left > 0.0:
 		movement = _dash_direction * dash_speed
@@ -580,7 +589,7 @@ func _set_camera_bounds(area: MapArea) -> void:
 	camera.limit_bottom = int(area.global_position.y + area.area_size.y)
 
 func _draw() -> void:
-	_draw_sword_swing()
+	pass
 
 func _update_eye_glow(delta: float) -> void:
 	if not _eye_glow_material:
@@ -690,6 +699,9 @@ func attack() -> void:
 	is_attacking = true
 	_swing_direction = facing_direction
 	_swing_progress = 0.0
+	_attack_sprite_texture = player_sprite.texture
+	if absf(facing_direction.x) > absf(facing_direction.y):
+		_set_player_sprite_texture(PLAYER_SIDE_ATTACK_FRAMES[0])
 	_hit_targets.clear()
 	queue_redraw()
 
@@ -698,6 +710,8 @@ func _advance_swing(delta: float) -> void:
 	if transitioning or _swing_progress >= 1.0:
 		is_attacking = false
 		_swing_progress = -1.0
+		_update_player_sprite()
+		_attack_sprite_texture = null
 		queue_redraw()
 		return
 	var next_progress := minf(1.0, _swing_progress + delta / attack_duration)
@@ -708,6 +722,9 @@ func _advance_swing(delta: float) -> void:
 		var progress := lerpf(_swing_progress, next_progress, float(index) / float(samples))
 		_apply_sword_hit(progress)
 	_swing_progress = next_progress
+	if absf(_swing_direction.x) > absf(_swing_direction.y):
+		var frame_index := mini(floori(_swing_progress * PLAYER_SIDE_ATTACK_FRAMES.size()), PLAYER_SIDE_ATTACK_FRAMES.size() - 1)
+		_set_player_sprite_texture(PLAYER_SIDE_ATTACK_FRAMES[frame_index])
 	queue_redraw()
 
 
@@ -746,21 +763,6 @@ func _apply_sword_hit(progress: float) -> void:
 			continue
 		_hit_targets[target_id] = true
 		body.call("take_damage", attack_damage, global_position)
-
-
-func _draw_sword_swing() -> void:
-	if _swing_progress < 0.0:
-		return
-	var blade := _blade_segment(_swing_progress)
-	var trail_alpha := 0.85 * (1.0 - _swing_progress * 0.55)
-	if _swing_progress > 0.0:
-		draw_arc(_swing_direction * BLADE_PIVOT_DISTANCE, _blade_radius(_swing_progress), _blade_angle(0.0),
-			_blade_angle(_swing_progress), 24, Color(0.45, 0.88, 1.0, trail_alpha * 0.35), 6.0, true)
-	var edge := Color(0.08, 0.14, 0.2, trail_alpha)
-	draw_line(blade[0], blade[1], edge, BLADE_WIDTH, true)
-	draw_circle(blade[0], BLADE_WIDTH * 0.5, edge, true, -1.0, true)
-	draw_circle(blade[1], BLADE_WIDTH * 0.5, edge, true, -1.0, true)
-	draw_line(blade[0], blade[1], Color(0.9, 0.98, 1.0, trail_alpha), 5.0, true)
 
 
 func _start_dash() -> void:
