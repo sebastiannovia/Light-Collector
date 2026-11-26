@@ -7,11 +7,6 @@ func _ready() -> void:
 	visible = false
 
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
-
-
 func _on_button_continue_pressed() -> void:
 	visible = false
 	get_tree().paused = false

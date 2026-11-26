@@ -12,8 +12,6 @@
 [ext_resource type="Script" uid="uid://nqw440if4rn0" path="res://gameplay/item_database.gd" id="7_qb0cc"]
 [ext_resource type="Texture2D" uid="uid://ca4epxpo8rvx0" path="res://Tiles/Atlases/forest_walls_bottom.png" id="7_wv3dd"]
 [ext_resource type="Texture2D" uid="uid://j24papdb6slu" path="res://Tiles/Atlases/forest_paths.png" id="8_8kxtj"]
-[ext_resource type="PackedScene" uid="uid://dhfhmhasnlf5r" path="res://gameplay/Monsters/Jumper.tscn" id="10_pdi3m"]
-[ext_resource type="PackedScene" uid="uid://r51lgmbwp7r2" path="res://gameplay/Monsters/Charger.tscn" id="11_cjl5k"]
 [ext_resource type="PackedScene" uid="uid://bqqj6cqav77ir" path="res://gameplay/Player/Player.tscn" id="11_qb0cc"]
 [ext_resource type="Script" uid="uid://dnb58koilhtat" path="res://gameplay/Gatherables/forest_scenery_spawner.gd" id="14_cjl5k"]
 [ext_resource type="PackedScene" uid="uid://li37js7hxtwx" path="res://gameplay/Gatherables/harvestable_tree.tscn" id="15_m5tih"]
@@ -51,6 +49,7 @@
 [ext_resource type="Texture2D" uid="uid://cbf4e4aun4mqq" path="res://Assets/Stumps/forest_treestump_03.png" id="47_o1hsi"]
 [ext_resource type="PackedScene" uid="uid://cwq35dgypnyyl" path="res://gameplay/MainBoss/MainBoss.tscn" id="48_uo6d2"]
 [ext_resource type="Script" uid="uid://ckl76wnd1kiqc" path="res://gameplay/day_night_cycle.gd" id="50_1xpl3"]
+[ext_resource type="Script" uid="uid://c1mgwkvwmxfta" path="res://gameplay/Monsters/monster_spawn_director.gd" id="52_pw20k"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yu6lc"]
 texture = ExtResource("3_xtgk2")
@@ -159,6 +158,9 @@ script = ExtResource("1_dldcj")
 script = ExtResource("1_area")
 area_label = "Main Base"
 minimap_color = Color(0.9798991, 0.23298451, 0, 1)
+monster_spawning_enabled = false
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 show_grid = false
 path_north = true
 path_east = true
@@ -174,17 +176,14 @@ y_sort_enabled = true
 tile_map_data = PackedByteArray("AAAHAAAAAgABAAEAAAA=")
 tile_set = ExtResource("4_o2kl1")
 
-[node name="monster_jumper" parent="MapAreas/Main Base" unique_id=1878941016 instance=ExtResource("10_pdi3m")]
-position = Vector2(2293, 1344)
-
-[node name="monster_charger" parent="MapAreas/Main Base" unique_id=471776626 instance=ExtResource("11_cjl5k")]
-position = Vector2(1442, 1479)
-
 [node name="Cave 2 Entry" type="Node2D" parent="MapAreas" unique_id=1336652256 groups=["map_areas"]]
 position = Vector2(7680, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2 Entry"
 minimap_color = Color(0.5173793, 0.52360475, 0.5552469, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_east = true
 path_west = true
 
@@ -205,6 +204,9 @@ position = Vector2(11520, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_1"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_west = true
@@ -226,6 +228,9 @@ position = Vector2(15360, 0)
 script = ExtResource("1_area")
 area_label = "Cave 2_4"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 2_4" unique_id=1141644942]
@@ -245,6 +250,9 @@ position = Vector2(11520, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_south = true
 path_west = true
 
@@ -265,6 +273,9 @@ position = Vector2(7680, -2160)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_east = true
 path_south = true
 path_west = true
@@ -286,6 +297,9 @@ position = Vector2(-7680, -4320)
 script = ExtResource("1_area")
 area_label = "Cave 2_3"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_south = true
 
@@ -306,6 +320,9 @@ position = Vector2(-7680, -6480)
 script = ExtResource("1_area")
 area_label = "Cave 3_2"
 minimap_color = Color(0.5176471, 0.5254902, 0.5568628, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_south = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Cave 3_2" unique_id=741906695]
@@ -325,6 +342,9 @@ position = Vector2(0, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -2301,6 +2321,9 @@ position = Vector2(3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -4297,6 +4320,9 @@ position = Vector2(-3840, 0)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -6293,6 +6319,9 @@ position = Vector2(3840, -2160)
 script = ExtResource("1_area")
 area_label = "Resin"
 minimap_color = Color(0.70962167, 0.54073066, 0.09971144, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -6315,6 +6344,9 @@ position = Vector2(-3840, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 floor_saturation = 1.5
 path_north = true
 path_east = true
@@ -8290,6 +8322,9 @@ offset = Vector2(0, -154)
 position = Vector2(0, 4320)
 script = ExtResource("1_area")
 area_label = "Bridge"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -8311,6 +8346,9 @@ script = ExtResource("4_guides")
 position = Vector2(0, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -8332,6 +8370,9 @@ script = ExtResource("4_guides")
 position = Vector2(3840, 6480)
 script = ExtResource("1_area")
 area_label = "Flower"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -8354,6 +8395,9 @@ position = Vector2(7680, 5400)
 script = ExtResource("1_area")
 area_label = "Settlement"
 area_size = Vector2(7680, 4320)
+monster_spawning_enabled = false
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_west = true
 
 [node name="GroundArt" type="TileMapLayer" parent="MapAreas/Settlement1" unique_id=1361338019]
@@ -8373,6 +8417,9 @@ position = Vector2(-3840, -8640)
 script = ExtResource("1_area")
 area_label = "Boss Cave"
 area_size = Vector2(11520, 6480)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_south = true
 south_path_tiles = Array[int]([7, 37])
 
@@ -8396,6 +8443,9 @@ position = Vector2(-11520, -2160)
 script = ExtResource("1_area")
 area_label = "Forest"
 minimap_color = Color(0.5137255, 0.76862746, 0, 1)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -10363,6 +10413,9 @@ offset = Vector2(0, -154)
 position = Vector2(-11520, 0)
 script = ExtResource("1_area")
 area_label = "Start"
+monster_spawning_enabled = false
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_east = true
 path_west = true
 
@@ -10382,6 +10435,9 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, -2160)
 script = ExtResource("1_area")
 area_label = "Waterfall"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -10403,6 +10459,9 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 0)
 script = ExtResource("1_area")
 area_label = "River"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -10424,6 +10483,9 @@ script = ExtResource("4_guides")
 position = Vector2(-7680, 2160)
 script = ExtResource("1_area")
 area_label = "River"
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 path_east = true
 path_south = true
@@ -10445,6 +10507,9 @@ position = Vector2(-3840, 2160)
 script = ExtResource("1_area")
 area_label = "Lake"
 area_size = Vector2(11520, 2160)
+monster_spawning_enabled = null
+maximum_alive_monsters = null
+allowed_monster_scenes = null
 path_north = true
 north_path_tiles = Array[int]([7, 37])
 path_east = true
@@ -10486,3 +10551,6 @@ position = Vector2(1950, 1120)
 
 [node name="DayNight" type="CanvasModulate" parent="." unique_id=241110692]
 script = ExtResource("50_1xpl3")
+
+[node name="MonsterSpawnDirector" type="Node" parent="." unique_id=1196263445]
+script = ExtResource("52_pw20k")

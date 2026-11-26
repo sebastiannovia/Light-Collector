@@ -13,6 +13,14 @@ const ATTACK_PATH_STEP := 16.0
 @export_range(1, 10000, 1) var starting_health := 160
 @export_range(0.0, 500.0, 1.0) var chase_speed := 100.0
 
+@export_group("Roaming")
+@export var roaming_enabled := true
+@export_range(0.0, 2000.0, 16.0) var roaming_radius := 640.0
+@export_range(0.0, 1.0, 0.05) var roaming_speed_multiplier := 0.38
+@export_range(0.0, 15.0, 0.1) var roaming_pause_min := 1.2
+@export_range(0.0, 30.0, 0.1) var roaming_pause_max := 4.0
+@export_range(1, 40, 1) var roaming_destination_attempts := 16
+
 @export_group("Attack")
 @export_range(32.0, 400.0, 1.0) var sight_range := 320.0
 @export_range(24.0, 256.0, 1.0) var attack_range := 110.0
@@ -38,6 +46,13 @@ const ATTACK_PATH_STEP := 16.0
 @export var walk_sideways_frames: Array[Texture2D] = []
 @export var sideways_frames_face_left := false
 
+@export_group("Attack Animation")
+@export_range(1.0, 24.0, 0.5) var attack_animation_fps := 12.0
+@export var attack_side_frames: Array[Texture2D] = []
+@export var attack_from_you_frames: Array[Texture2D] = []
+@export var attack_to_you_frames: Array[Texture2D] = []
+@export var attack_side_frames_face_left := false
+
 @export_group("Light")
 @export var glow_color := Color("83f1de")
 @export_range(0.0, 1.5, 0.01) var glow_intensity := 0.46
@@ -61,6 +76,9 @@ var _idle_texture: Texture2D
 var _active_animation_frames: Array[Texture2D] = []
 var _animation_elapsed := 0.0
 var _animation_frame := 0
+var _attack_animation_frames: Array[Texture2D] = []
+var _attack_animation_elapsed := 0.0
+var _attack_animation_frame := -1
 var _cycle: DayNightCycle
 var _area: MapArea
 var _spawn_position: Vector2
@@ -68,6 +86,11 @@ var _spawn_clear := true
 var _active := false
 var _glow: PointLight2D
 var _glow_time := 0.0
+var _roam_origin := Vector2.ZERO
+var _roam_destination := Vector2.ZERO
+var _roam_pause_left := 0.0
+var _roam_stuck_left := 0.0
+var _rng := RandomNumberGenerator.new()
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var body_shape: CollisionShape2D = $CollisionShape2D
@@ -76,6 +99,7 @@ var _glow_time := 0.0
 
 func _ready() -> void:
 	health = starting_health
+	_rng.randomize()
 	_idle_texture = sprite.texture
 	_sprite_rest_position = sprite.position
 	add_to_group("monsters")
@@ -94,6 +118,7 @@ func _ready() -> void:
 		ancestor = ancestor.get_parent()
 	_area = ancestor as MapArea
 	_spawn_position = position
+	_roam_origin = global_position
 	z_as_relative = false
 	_glow = WORLD_GLOW.make_light(158.0, glow_color, glow_intensity)
 	sprite.add_child(_glow)
@@ -145,6 +170,10 @@ func _refresh_active() -> void:
 
 func _apply_active(enabled: bool) -> void:
 	_active = enabled
+	if not enabled:
+		_roam_destination = Vector2.ZERO
+		_roam_pause_left = _random_roam_pause()
+		_roam_stuck_left = 0.0
 	sprite.visible = enabled
 	_glow.enabled = enabled
 	body_shape.set_deferred("disabled", not enabled)
@@ -180,11 +209,11 @@ func _physics_process(delta: float) -> void:
 	if _attack_travel_left > 0.0:
 		_advance_attack_travel(delta)
 		return
-	if _attack_cooldown_left > 0.0:
-		_move_in_direction(Vector2.ZERO, delta)
-		return
 	if not is_instance_valid(target):
 		target = null
+		_update_roaming(delta)
+		return
+	if _attack_cooldown_left > 0.0:
 		_move_in_direction(Vector2.ZERO, delta)
 		return
 	if _area and _area.get_path_light_exposure(target.global_position) > 0.0:
@@ -194,6 +223,60 @@ func _physics_process(delta: float) -> void:
 	var distance := offset.length()
 	if distance > attack_range or not _begin_attack(offset):
 		_move_in_direction(_chase_direction(offset.normalized(), distance), delta)
+
+
+func _update_roaming(delta: float) -> void:
+	if not roaming_enabled or roaming_radius <= 0.0:
+		_move_in_direction(Vector2.ZERO, delta)
+		return
+	if _roam_destination == Vector2.ZERO:
+		_roam_pause_left = maxf(0.0, _roam_pause_left - delta)
+		if _roam_pause_left <= 0.0:
+			_choose_roam_destination()
+		if _roam_destination == Vector2.ZERO:
+			_move_in_direction(Vector2.ZERO, delta)
+			return
+	var offset := _roam_destination - global_position
+	if offset.length() <= 20.0:
+		_roam_destination = Vector2.ZERO
+		_roam_pause_left = _random_roam_pause()
+		_roam_stuck_left = 0.0
+		_move_in_direction(Vector2.ZERO, delta)
+		return
+	var direction := offset.normalized()
+	var next_position := global_position + direction * chase_speed * roaming_speed_multiplier * delta
+	if not _inside_area(next_position) or (_area and _area.get_path_light_exposure(next_position) > 0.0):
+		_roam_destination = Vector2.ZERO
+		_roam_pause_left = _random_roam_pause()
+		_move_in_direction(Vector2.ZERO, delta)
+		return
+	var previous_position := global_position
+	_move_in_direction(direction, delta, roaming_speed_multiplier)
+	if global_position.distance_squared_to(previous_position) < 1.0:
+		_roam_stuck_left += delta
+		if _roam_stuck_left >= 0.45:
+			_roam_destination = Vector2.ZERO
+			_roam_pause_left = _random_roam_pause()
+			_roam_stuck_left = 0.0
+	else:
+		_roam_stuck_left = 0.0
+
+
+func _choose_roam_destination() -> void:
+	if not _area:
+		return
+	for _attempt in range(roaming_destination_attempts):
+		var angle := _rng.randf_range(0.0, TAU)
+		var distance := _rng.randf_range(roaming_radius * 0.25, roaming_radius)
+		var candidate := _roam_origin + Vector2.RIGHT.rotated(angle) * distance
+		if _inside_area(candidate) and _area.get_path_light_exposure(candidate) <= 0.0:
+			_roam_destination = candidate
+			return
+	_roam_pause_left = _random_roam_pause()
+
+
+func _random_roam_pause() -> float:
+	return _rng.randf_range(roaming_pause_min, maxf(roaming_pause_min, roaming_pause_max))
 
 
 func _begin_attack(offset: Vector2) -> bool:
@@ -212,8 +295,42 @@ func _begin_attack(offset: Vector2) -> bool:
 	_attack_target = target
 	_attack_windup_left = attack_windup
 	_charge_hit = false
+	if attack_pattern == AttackPattern.LEAP:
+		_start_attack_animation(_attack_heading)
 	_hold_attack_pose()
 	return true
+
+
+func _start_attack_animation(direction: Vector2) -> void:
+	_attack_animation_frames = []
+	_attack_animation_elapsed = 0.0
+	_attack_animation_frame = -1
+	sprite.flip_h = false
+	if absf(direction.x) > absf(direction.y):
+		_attack_animation_frames = attack_side_frames
+		if not _attack_animation_frames.is_empty():
+			sprite.flip_h = direction.x > 0.0 if attack_side_frames_face_left else direction.x < 0.0
+	elif direction.y < 0.0:
+		_attack_animation_frames = attack_from_you_frames
+	else:
+		_attack_animation_frames = attack_to_you_frames
+	if _attack_animation_frames.is_empty():
+		return
+	_attack_animation_frame = 0
+	sprite.texture = _attack_animation_frames[0]
+
+
+func _advance_attack_animation(delta: float) -> void:
+	if _attack_animation_frames.is_empty():
+		return
+	_attack_animation_elapsed += delta
+	var frame_index := mini(
+		floori(_attack_animation_elapsed * attack_animation_fps),
+		_attack_animation_frames.size() - 1
+	)
+	if frame_index != _attack_animation_frame:
+		_attack_animation_frame = frame_index
+		sprite.texture = _attack_animation_frames[_attack_animation_frame]
 
 
 func _clear_attack_path(from: Vector2, to: Vector2) -> Vector2:
@@ -233,7 +350,7 @@ func _hold_attack_pose() -> void:
 	velocity = Vector2.ZERO
 	if attack_pattern == AttackPattern.CHARGE:
 		_update_movement_animation(0.0, _attack_heading)
-	else:
+	elif _attack_animation_frames.is_empty():
 		_stop_movement_animation()
 	_update_depth_order()
 
@@ -241,6 +358,7 @@ func _hold_attack_pose() -> void:
 func _advance_windup(delta: float) -> void:
 	_hold_attack_pose()
 	_attack_windup_left = maxf(0.0, _attack_windup_left - delta)
+	_advance_attack_animation(delta)
 	if _attack_windup_left == 0.0:
 		if attack_pattern == AttackPattern.SWIPE:
 			_hit_attack_circle(global_position, attack_range)
@@ -255,6 +373,7 @@ func _advance_windup(delta: float) -> void:
 
 func _advance_attack_travel(delta: float) -> void:
 	_attack_travel_left = maxf(0.0, _attack_travel_left - delta)
+	_advance_attack_animation(delta)
 	var progress := 1.0 - _attack_travel_left / attack_travel_time
 	var previous := global_position
 	var intended := _attack_origin.lerp(_attack_destination, progress)
@@ -315,11 +434,17 @@ func _clear_attack() -> void:
 	_attack_target = null
 	_attack_windup_left = 0.0
 	_attack_travel_left = 0.0
+	if not _attack_animation_frames.is_empty():
+		sprite.texture = _idle_texture
+		sprite.flip_h = false
+	_attack_animation_frames = []
+	_attack_animation_elapsed = 0.0
+	_attack_animation_frame = -1
 	sprite.position = _sprite_rest_position
 
 
-func _move_in_direction(direction: Vector2, delta: float) -> void:
-	velocity = direction * chase_speed
+func _move_in_direction(direction: Vector2, delta: float, speed_multiplier: float = 1.0) -> void:
+	velocity = direction * chase_speed * speed_multiplier
 	if not direction.is_zero_approx():
 		move_and_slide()
 	_update_movement_animation(delta, velocity)

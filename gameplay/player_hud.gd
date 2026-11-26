@@ -114,7 +114,6 @@ func _draw_status_hud() -> void:
 
 func _draw_status_bar(font: Font, label: String, value: float, maximum: float, fill_color: Color, row_y: float, bar_size: Vector2, inner_width: float) -> void:
 	var left := style.status_position.x + style.status_padding
-	var right := style.status_position.x + style.status_panel_size.x - style.status_padding
 	var label_y := row_y + style.status_font_size
 	var value_text := "%d / %d" % [roundi(value), roundi(maximum)]
 	draw_string(font, Vector2(left, label_y), label, HORIZONTAL_ALIGNMENT_LEFT, inner_width * 0.58, style.status_font_size, style.status_text_color)
@@ -135,8 +134,8 @@ func _draw_notifications() -> void:
 	var first_y := size.y * 0.5 + style.notification_vertical_offset - block_height * 0.5
 	var font: Font = style.notification_font if style.notification_font else ThemeDB.fallback_font
 	for index in _notifications.size():
-		var notification: Dictionary = _notifications[index]
-		var remaining: float = notification.remaining
+		var notice_data: Dictionary = _notifications[index]
+		var remaining: float = notice_data.remaining
 		var fade_alpha := 1.0
 		if style.notification_fade_time > 0.0:
 			fade_alpha = clampf(remaining / style.notification_fade_time, 0.0, 1.0)
@@ -147,17 +146,17 @@ func _draw_notifications() -> void:
 		var origin := Vector2(style.notification_left_margin, first_y + index * (notification_height + style.notification_spacing))
 		var panel := _make_panel_style(background, border, style.notification_border_width, style.notification_corner_radius)
 		draw_style_box(panel, Rect2(origin, style.notification_size))
-		var item_icon: Texture2D = notification.icon
+		var item_icon: Texture2D = notice_data.icon
 		var icon_size := minf(style.notification_icon_size, notification_height - 16.0)
 		var icon_rect := Rect2(origin + Vector2(style.notification_horizontal_padding, (notification_height - icon_size) * 0.5), Vector2(icon_size, icon_size))
 		if item_icon:
 			draw_texture_rect(item_icon, icon_rect, false, Color(1.0, 1.0, 1.0, fade_alpha))
 		else:
-			draw_circle(icon_rect.get_center(), icon_size * style.notification_fallback_icon_radius_ratio, notification.color)
+			draw_circle(icon_rect.get_center(), icon_size * style.notification_fallback_icon_radius_ratio, notice_data.color)
 		var text_color := style.notification_text_color
 		text_color.a *= fade_alpha
 		var text_left := origin.x + style.notification_horizontal_padding + icon_size + style.notification_text_gap
-		draw_string(font, Vector2(text_left, origin.y + notification_height * 0.5 + style.notification_font_size * 0.35), notification.text, HORIZONTAL_ALIGNMENT_LEFT, style.notification_size.x - (text_left - origin.x) - style.notification_horizontal_padding, style.notification_font_size, text_color)
+		draw_string(font, Vector2(text_left, origin.y + notification_height * 0.5 + style.notification_font_size * 0.35), notice_data.text, HORIZONTAL_ALIGNMENT_LEFT, style.notification_size.x - (text_left - origin.x) - style.notification_horizontal_padding, style.notification_font_size, text_color)
 
 func _make_panel_style(background: Color, border: Color, border_width: int, radius: int) -> StyleBoxFlat:
 	var panel := StyleBoxFlat.new()

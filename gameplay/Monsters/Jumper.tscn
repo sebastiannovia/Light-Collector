@@ -6,6 +6,33 @@
 [ext_resource type="Texture2D" uid="uid://c1sv1nonioxpk" path="res://Assets/Animations/jumper/jumper_walking_2.png" id="3_pci8w"]
 [ext_resource type="Texture2D" uid="uid://cgqpv5nct6ew2" path="res://Assets/Animations/jumper/jumper_walking_3.png" id="4_fbow8"]
 [ext_resource type="Texture2D" uid="uid://cq7w4eeqdinqr" path="res://Assets/Animations/jumper/jumper_walking_4.png" id="5_io18n"]
+[ext_resource type="Texture2D" uid="uid://cavy7ro3s0byh" path="res://Assets/Animations/jumper/jumper_attacking_1.png" id="6_14qgx"]
+[ext_resource type="Texture2D" uid="uid://delniw5ckasb5" path="res://Assets/Animations/jumper/jumper_attacking_2.png" id="7_doi7d"]
+[ext_resource type="Texture2D" uid="uid://c4qb6x7ofdtdl" path="res://Assets/Animations/jumper/jumper_attacking_3.png" id="8_ib6wv"]
+[ext_resource type="Texture2D" uid="uid://c0jw2j604glur" path="res://Assets/Animations/jumper/jumper_attacking_4.png" id="9_w3in1"]
+[ext_resource type="Texture2D" uid="uid://cy73i6rfsgdoy" path="res://Assets/Animations/jumper/jumper_attacking_5.png" id="10_3joy8"]
+[ext_resource type="Texture2D" uid="uid://fg1enwswr8os" path="res://Assets/Animations/jumper/jumper_attacking_6.png" id="11_xg77a"]
+[ext_resource type="Texture2D" uid="uid://bxw2gk1nkeo05" path="res://Assets/Animations/jumper/jumper_attacking_7.png" id="12_d58k6"]
+[ext_resource type="Texture2D" uid="uid://co68g2wvs72lm" path="res://Assets/Animations/jumper/jumper_attacking_8.png" id="13_xh6pv"]
+[ext_resource type="Texture2D" uid="uid://11orobu45gxr" path="res://Assets/Animations/jumper/jumper_attacking_9.png" id="14_85j6c"]
+[ext_resource type="Texture2D" uid="uid://merqcmyae04i" path="res://Assets/Animations/jumper/jumper_attacking_from_you_1.png" id="15_2snsa"]
+[ext_resource type="Texture2D" uid="uid://6d8dt18kfes6" path="res://Assets/Animations/jumper/jumper_attacking_from_you_2.png" id="16_rqx1k"]
+[ext_resource type="Texture2D" uid="uid://0ml2gcp4snsk" path="res://Assets/Animations/jumper/jumper_attacking_from_you_3.png" id="17_o1yk1"]
+[ext_resource type="Texture2D" uid="uid://c80ppswsgyh14" path="res://Assets/Animations/jumper/jumper_attacking_from_you_4.png" id="18_dcwr5"]
+[ext_resource type="Texture2D" uid="uid://ds0eww5p6phg" path="res://Assets/Animations/jumper/jumper_attacking_from_you_5.png" id="19_8cnl2"]
+[ext_resource type="Texture2D" uid="uid://cr7gq4atbpe8r" path="res://Assets/Animations/jumper/jumper_attacking_from_you_6.png" id="20_ls6i0"]
+[ext_resource type="Texture2D" uid="uid://bt2u1nlkynwaf" path="res://Assets/Animations/jumper/jumper_attacking_from_you_7.png" id="21_njtct"]
+[ext_resource type="Texture2D" uid="uid://d2t1o4ojhtkos" path="res://Assets/Animations/jumper/jumper_attacking_from_you_8.png" id="22_x3adu"]
+[ext_resource type="Texture2D" uid="uid://dax1xyca6ddqp" path="res://Assets/Animations/jumper/jumper_attacking_from_you_9.png" id="23_0ho4e"]
+[ext_resource type="Texture2D" uid="uid://dk8jpsu16mjl6" path="res://Assets/Animations/jumper/jumper_attacking_to_you_1.png" id="24_dbiej"]
+[ext_resource type="Texture2D" uid="uid://b0pnoqitl05to" path="res://Assets/Animations/jumper/jumper_attacking_to_you_2.png" id="25_40djr"]
+[ext_resource type="Texture2D" uid="uid://bk58nfwxvcmcs" path="res://Assets/Animations/jumper/jumper_attacking_to_you_3.png" id="26_o8oj4"]
+[ext_resource type="Texture2D" uid="uid://welq704gqe23" path="res://Assets/Animations/jumper/jumper_attacking_to_you_4.png" id="27_vjle6"]
+[ext_resource type="Texture2D" uid="uid://xi12in6jjxtr" path="res://Assets/Animations/jumper/jumper_attacking_to_you_5.png" id="28_4tql6"]
+[ext_resource type="Texture2D" uid="uid://dqw8y8bof8x8m" path="res://Assets/Animations/jumper/jumper_attacking_to_you_6.png" id="29_2sskr"]
+[ext_resource type="Texture2D" uid="uid://cgkns6yxd45u7" path="res://Assets/Animations/jumper/jumper_attacking_to_you_7.png" id="30_rbotf"]
+[ext_resource type="Texture2D" uid="uid://nb6wjh6uc6ta" path="res://Assets/Animations/jumper/jumper_attacking_to_you_8.png" id="31_1urek"]
+[ext_resource type="Texture2D" uid="uid://bp4gdh8ne53kk" path="res://Assets/Animations/jumper/jumper_attacking_to_you_9.png" id="32_j02xb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_j5scw"]
 size = Vector2(70, 65)
@@ -23,6 +50,9 @@ attack_pattern = 1
 attack_travel_time = 0.4
 attack_impact_radius = 78.0
 walk_frames = Array[Texture2D]([ExtResource("2_1poyr"), ExtResource("3_pci8w"), ExtResource("4_fbow8"), ExtResource("5_io18n")])
+attack_side_frames = Array[Texture2D]([ExtResource("6_14qgx"), ExtResource("7_doi7d"), ExtResource("8_ib6wv"), ExtResource("9_w3in1"), ExtResource("10_3joy8"), ExtResource("11_xg77a"), ExtResource("12_d58k6"), ExtResource("13_xh6pv"), ExtResource("14_85j6c")])
+attack_from_you_frames = Array[Texture2D]([ExtResource("15_2snsa"), ExtResource("16_rqx1k"), ExtResource("17_o1yk1"), ExtResource("18_dcwr5"), ExtResource("19_8cnl2"), ExtResource("20_ls6i0"), ExtResource("21_njtct"), ExtResource("22_x3adu"), ExtResource("23_0ho4e")])
+attack_to_you_frames = Array[Texture2D]([ExtResource("24_dbiej"), ExtResource("25_40djr"), ExtResource("26_o8oj4"), ExtResource("27_vjle6"), ExtResource("28_4tql6"), ExtResource("29_2sskr"), ExtResource("30_rbotf"), ExtResource("31_1urek"), ExtResource("32_j02xb")])
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=997570214]
 texture = ExtResource("2_ij78q")

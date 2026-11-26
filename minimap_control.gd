@@ -24,8 +24,8 @@ var _screen_scale := 1.0
 var _screen_origin := Vector2.ZERO
 var _clip_rect := Rect2()
 
-func configure(owner: Node2D, settings: Dictionary) -> void:
-	map_player = owner
+func configure(map_owner: Node2D, settings: Dictionary) -> void:
+	map_player = map_owner
 	panel_size = settings.get("panel_size", panel_size)
 	map_scale = settings.get("map_scale", map_scale)
 	padding = settings.get("padding", padding)
@@ -199,8 +199,8 @@ func _draw_connections() -> void:
 				if not known and not show_unknown_paths:
 					continue
 				var progress := 1.0 if known else 0.48
-				var seed := hash(connection_key)
-				_draw_hand_path(from, to, progress, seed)
+				var path_seed := hash(connection_key)
+				_draw_hand_path(from, to, progress, path_seed)
 
 func _neighbor_for_path(area: MapArea, side: String, center: float) -> MapArea:
 	var probe := Vector2.ZERO
@@ -281,19 +281,19 @@ func _draw_partial_line(points: PackedVector2Array, progress: float, color: Colo
 		lengths.append(segment_length)
 		total_length += segment_length
 	var remaining := total_length * progress
-	var visible := PackedVector2Array([points[0]])
+	var visible_points := PackedVector2Array([points[0]])
 	for index in range(lengths.size()):
 		var segment_length := lengths[index]
 		if remaining >= segment_length:
-			visible.append(points[index + 1])
+			visible_points.append(points[index + 1])
 			remaining -= segment_length
 		else:
 			if segment_length > 0.0:
-				visible.append(points[index].lerp(points[index + 1], remaining / segment_length))
+				visible_points.append(points[index].lerp(points[index + 1], remaining / segment_length))
 			break
-	if visible.size() > 1:
-		for index in range(visible.size() - 1):
-			var clipped := _clip_segment(visible[index], visible[index + 1], _clip_rect)
+	if visible_points.size() > 1:
+		for index in range(visible_points.size() - 1):
+			var clipped := _clip_segment(visible_points[index], visible_points[index + 1], _clip_rect)
 			if clipped.size() == 2:
 				draw_line(clipped[0], clipped[1], color, width, true)
 
@@ -333,8 +333,8 @@ func _clip_edge_intersection(from: Vector2, to: Vector2, rect: Rect2, edge: int)
 		var t := (x - from.x) / (to.x - from.x) if not is_equal_approx(from.x, to.x) else 0.0
 		return Vector2(x, lerpf(from.y, to.y, t))
 	var y := rect.position.y if edge == 2 else rect.end.y
-	var t := (y - from.y) / (to.y - from.y) if not is_equal_approx(from.y, to.y) else 0.0
-	return Vector2(lerpf(from.x, to.x, t), y)
+	var vertical_t := (y - from.y) / (to.y - from.y) if not is_equal_approx(from.y, to.y) else 0.0
+	return Vector2(lerpf(from.x, to.x, vertical_t), y)
 
 func _clip_segment(from: Vector2, to: Vector2, rect: Rect2) -> PackedVector2Array:
 	var delta := to - from

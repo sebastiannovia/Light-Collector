@@ -77,12 +77,29 @@ const PLAYER_DOWN_RUN_FRAMES: Array[Texture2D] = [
 	preload("res://Assets/Animations/Character/mc_walking_to_you7.png"),
 	preload("res://Assets/Animations/Character/mc_walking_to_you8.png"),
 ]
-const PLAYER_SIDE_ATTACK_FRAMES: Array[Texture2D] = [
-	preload("res://Assets/Animations/Character/attack_side_1.png"),
-	preload("res://Assets/Animations/Character/attack_side_2.png"),
-	preload("res://Assets/Animations/Character/attack_side_3.png"),
-	preload("res://Assets/Animations/Character/attack_side_4.png"),
-	preload("res://Assets/Animations/Character/attack_side_5.png"),
+const PLAYER_ATTACK_BACK_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_attack_back1.png"),
+	preload("res://Assets/Animations/Character/mc_attack_back2.png"),
+	preload("res://Assets/Animations/Character/mc_attack_back3.png"),
+	preload("res://Assets/Animations/Character/mc_attack_back4.png"),
+]
+const PLAYER_ATTACK_FRONT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_attack_front1.png"),
+	preload("res://Assets/Animations/Character/mc_attack_front2.png"),
+	preload("res://Assets/Animations/Character/mc_attack_front3.png"),
+	preload("res://Assets/Animations/Character/mc_attack_front4.png"),
+]
+const PLAYER_ATTACK_LEFT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_attack_left1.png"),
+	preload("res://Assets/Animations/Character/mc_attack_left2.png"),
+	preload("res://Assets/Animations/Character/mc_attack_left3.png"),
+	preload("res://Assets/Animations/Character/mc_attack_left4.png"),
+]
+const PLAYER_ATTACK_RIGHT_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/mc_attack_right1.png"),
+	preload("res://Assets/Animations/Character/mc_attack_right2.png"),
+	preload("res://Assets/Animations/Character/mc_attack_right3.png"),
+	preload("res://Assets/Animations/Character/mc_attack_right4.png"),
 ]
 const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
@@ -164,7 +181,6 @@ var _idle_animation_frame := 0
 var _idle_animation_frames: Array[Texture2D] = []
 var _swing_direction := Vector2.DOWN
 var _swing_progress := -1.0
-var _attack_sprite_texture: Texture2D
 var _dash_direction := Vector2.DOWN
 var _dash_time_left := 0.0
 var _dash_cooldown_left := 0.0
@@ -697,13 +713,19 @@ func attack() -> void:
 	if is_attacking or transitioning:
 		return
 	is_attacking = true
-	_swing_direction = facing_direction
+	_swing_direction = facing_direction.normalized()
 	_swing_progress = 0.0
-	_attack_sprite_texture = player_sprite.texture
-	if absf(facing_direction.x) > absf(facing_direction.y):
-		_set_player_sprite_texture(PLAYER_SIDE_ATTACK_FRAMES[0])
+	var attack_frames := _attack_frames_for_direction(_swing_direction)
+	player_sprite.flip_h = false
+	_set_player_sprite_texture(attack_frames[0])
 	_hit_targets.clear()
 	queue_redraw()
+
+
+func _attack_frames_for_direction(direction: Vector2) -> Array[Texture2D]:
+	if absf(direction.x) > absf(direction.y):
+		return PLAYER_ATTACK_LEFT_FRAMES if direction.x < 0.0 else PLAYER_ATTACK_RIGHT_FRAMES
+	return PLAYER_ATTACK_BACK_FRAMES if direction.y < 0.0 else PLAYER_ATTACK_FRONT_FRAMES
 
 
 func _advance_swing(delta: float) -> void:
@@ -711,7 +733,6 @@ func _advance_swing(delta: float) -> void:
 		is_attacking = false
 		_swing_progress = -1.0
 		_update_player_sprite()
-		_attack_sprite_texture = null
 		queue_redraw()
 		return
 	var next_progress := minf(1.0, _swing_progress + delta / attack_duration)
@@ -722,9 +743,10 @@ func _advance_swing(delta: float) -> void:
 		var progress := lerpf(_swing_progress, next_progress, float(index) / float(samples))
 		_apply_sword_hit(progress)
 	_swing_progress = next_progress
-	if absf(_swing_direction.x) > absf(_swing_direction.y):
-		var frame_index := mini(floori(_swing_progress * PLAYER_SIDE_ATTACK_FRAMES.size()), PLAYER_SIDE_ATTACK_FRAMES.size() - 1)
-		_set_player_sprite_texture(PLAYER_SIDE_ATTACK_FRAMES[frame_index])
+	var attack_frames := _attack_frames_for_direction(_swing_direction)
+	var frame_index := mini(floori(_swing_progress * attack_frames.size()), attack_frames.size() - 1)
+	_set_player_sprite_texture(attack_frames[frame_index])
+	player_sprite.flip_h = false
 	queue_redraw()
 
 

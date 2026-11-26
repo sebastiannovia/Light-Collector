@@ -20,6 +20,11 @@ const FOREST_PATH_ATLAS := "res://Tiles/Atlases/forest_paths.png"
 @export_group("Minimap")
 @export var minimap_color := Color("95702cff")
 
+@export_group("Monster Spawning")
+@export var monster_spawning_enabled := true
+@export_range(0, 100, 1) var maximum_alive_monsters := 8
+@export var allowed_monster_scenes: Array[PackedScene] = []
+
 @export_group("Path Lights")
 @export_range(0, 255, 1) var path_tile_source_id := 0
 @export var path_tile_atlas_coords := Vector2i(0, 3)
