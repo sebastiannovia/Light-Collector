@@ -11,6 +11,7 @@ signal mined(item_id: StringName, quantity: int)
 @export var prompt_text := "[E] Mine Rock"
 
 var hit_count := 0
+var art_height := 0.0
 var _nearby_player := false
 var _depleted := false
 var _remaining_yield := 0
@@ -39,7 +40,7 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func is_player_nearby() -> bool:
-	return _nearby_player and not _depleted
+	return _nearby_player and not _depleted and is_visible_in_tree()
 
 func interact(player: Node) -> bool:
 	if not is_player_nearby():
@@ -83,7 +84,11 @@ func _player_inventory(player: Node) -> PlayerInventory:
 	return player.get_node_or_null("PlayerInventory") as PlayerInventory
 
 func _draw() -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(-110, -49), "%s  %d/%d" % [prompt_text, hit_count, hits_required], HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color("ffd166"))
+	if art_height > 0.0 and not is_player_nearby():
+		return
+	var prompt_y := -art_height * 0.5 - 12.0 if art_height > 0.0 else -49.0
+	var bar_y := art_height * 0.5 + 8.0 if art_height > 0.0 else 43.0
+	draw_string(ThemeDB.fallback_font, Vector2(-110, prompt_y), "%s  %d/%d" % [prompt_text, hit_count, hits_required], HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color("ffd166"))
 	for index in hits_required:
 		var bar_color := Color("d69a55") if index < hit_count else Color("263746")
-		draw_rect(Rect2(-hits_required * 9.0 + index * 18.0, 43, 14, 5), bar_color)
+		draw_rect(Rect2(-hits_required * 9.0 + index * 18.0, bar_y, 14, 5), bar_color)

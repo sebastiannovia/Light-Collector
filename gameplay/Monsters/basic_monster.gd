@@ -64,13 +64,14 @@ var target: Node2D
 var _attack_cooldown_left := 0.0
 var _attack_windup_left := 0.0
 var _attack_target: Node2D
-var _leap_collision_exception: PhysicsBody2D
 var _attack_origin := Vector2.ZERO
 var _attack_destination := Vector2.ZERO
 var _attack_heading := Vector2.RIGHT
 var _attack_travel_left := 0.0
 var _charge_hit := false
+var _leap_contact_hit := false
 var _sprite_rest_position := Vector2.ZERO
+var _body_rest_position := Vector2.ZERO
 var _knockback_tween: Tween
 var _idle_texture: Texture2D
 var _active_animation_frames: Array[Texture2D] = []
@@ -102,6 +103,7 @@ func _ready() -> void:
 	_rng.randomize()
 	_idle_texture = sprite.texture
 	_sprite_rest_position = sprite.position
+	_body_rest_position = body_shape.position
 	add_to_group("monsters")
 	if not sight_area.body_entered.is_connected(_on_sight_body_entered):
 		sight_area.body_entered.connect(_on_sight_body_entered)
@@ -194,6 +196,7 @@ func _physics_process(delta: float) -> void:
 	_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
 	_glow_time += delta
 	_glow.energy = glow_intensity * (0.92 + 0.08 * sin(_glow_time * 3.0))
+	_update_room_target()
 	if _area and _area.get_path_light_exposure(global_position) > 0.0:
 		_clear_attack()
 		if _knockback_tween and _knockback_tween.is_running():
@@ -223,6 +226,19 @@ func _physics_process(delta: float) -> void:
 	var distance := offset.length()
 	if distance > attack_range or not _begin_attack(offset):
 		_move_in_direction(_chase_direction(offset.normalized(), distance), delta)
+
+
+func _update_room_target() -> void:
+	var player := get_tree().get_first_node_in_group("map_player") as Node2D
+	if not player:
+		target = null
+		return
+	if _area:
+		var player_area := player.get("current_area") as MapArea
+		if player_area != _area or not _inside_area(player.global_position):
+			target = null
+			return
+	target = player
 
 
 func _update_roaming(delta: float) -> void:
@@ -295,6 +311,7 @@ func _begin_attack(offset: Vector2) -> bool:
 	_attack_target = target
 	_attack_windup_left = attack_windup
 	_charge_hit = false
+	_leap_contact_hit = false
 	if attack_pattern == AttackPattern.LEAP:
 		_start_attack_animation(_attack_heading)
 	_hold_attack_pose()
@@ -357,6 +374,8 @@ func _hold_attack_pose() -> void:
 
 func _advance_windup(delta: float) -> void:
 	_hold_attack_pose()
+	if attack_pattern == AttackPattern.LEAP:
+		_check_leap_player_contact()
 	_attack_windup_left = maxf(0.0, _attack_windup_left - delta)
 	_advance_attack_animation(delta)
 	if _attack_windup_left == 0.0:
@@ -364,10 +383,6 @@ func _advance_windup(delta: float) -> void:
 			_hit_attack_circle(global_position, attack_range)
 			_finish_attack()
 			return
-		if attack_pattern == AttackPattern.LEAP and is_instance_valid(_attack_target):
-			_leap_collision_exception = _attack_target as PhysicsBody2D
-			if _leap_collision_exception:
-				add_collision_exception_with(_leap_collision_exception)
 		_attack_travel_left = attack_travel_time
 
 
@@ -378,10 +393,17 @@ func _advance_attack_travel(delta: float) -> void:
 	var previous := global_position
 	var intended := _attack_origin.lerp(_attack_destination, progress)
 	var safe_point := _clear_attack_path(previous, intended)
+	if attack_pattern == AttackPattern.LEAP:
+		var jump_offset := -sin(PI * progress) * jump_height
+		sprite.position = _sprite_rest_position + Vector2(0.0, jump_offset)
+		body_shape.position = _body_rest_position + Vector2(0.0, jump_offset)
+		_check_leap_player_contact()
 	var collision := move_and_collide(safe_point - previous)
 	var blocked := collision != null or not safe_point.is_equal_approx(intended)
 	if attack_pattern == AttackPattern.LEAP:
-		sprite.position = _sprite_rest_position - Vector2(0.0, sin(PI * progress) * jump_height)
+		if collision:
+			_handle_leap_contact(collision.get_collider())
+		_check_leap_player_contact()
 	else:
 		_update_movement_animation(delta, _attack_heading)
 		_hit_charge_path(previous, global_position)
@@ -395,8 +417,42 @@ func _advance_attack_travel(delta: float) -> void:
 
 
 func _hit_attack_circle(center: Vector2, radius: float) -> void:
+	if attack_pattern == AttackPattern.LEAP and _leap_contact_hit:
+		return
 	if _can_hit_attack_target() and _attack_target.global_position.distance_squared_to(center) <= radius * radius:
-		_attack_target.call("take_damage", attack_damage)
+		if attack_pattern == AttackPattern.LEAP:
+			_leap_contact_hit = true
+		_attack_target.call("take_damage", attack_damage, global_position)
+
+
+func _check_leap_player_contact() -> void:
+	if _leap_contact_hit or not is_instance_valid(_attack_target):
+		return
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = body_shape.shape
+	query.transform = body_shape.global_transform
+	query.collision_mask = 1
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.exclude = [get_rid()]
+	for result in get_world_2d().direct_space_state.intersect_shape(query, 8):
+		var collider := result.get("collider") as Node2D
+		if collider == _attack_target:
+			_handle_leap_contact(collider)
+			return
+
+
+func _handle_leap_contact(collider: Object) -> void:
+	if _leap_contact_hit or not collider is Node2D:
+		return
+	var player := collider as Node2D
+	if not player.is_in_group("map_player"):
+		return
+	if player.has_method("is_dashing") and bool(player.call("is_dashing")):
+		return
+	_leap_contact_hit = true
+	if player.has_method("take_damage"):
+		player.call("take_damage", attack_damage, global_position)
 
 
 func _hit_charge_path(previous: Vector2, current: Vector2) -> void:
@@ -408,7 +464,7 @@ func _hit_charge_path(previous: Vector2, current: Vector2) -> void:
 		closest = Geometry2D.get_closest_point_to_segment(_attack_target.global_position, previous + lead, current + lead)
 	if closest.distance_squared_to(_attack_target.global_position) <= attack_impact_radius * attack_impact_radius:
 		_charge_hit = true
-		_attack_target.call("take_damage", attack_damage)
+		_attack_target.call("take_damage", attack_damage, global_position)
 
 
 func _can_hit_attack_target() -> bool:
@@ -428,12 +484,12 @@ func _finish_attack() -> void:
 
 
 func _clear_attack() -> void:
-	if is_instance_valid(_leap_collision_exception):
-		remove_collision_exception_with(_leap_collision_exception)
-	_leap_collision_exception = null
+	sprite.position = _sprite_rest_position
+	body_shape.position = _body_rest_position
 	_attack_target = null
 	_attack_windup_left = 0.0
 	_attack_travel_left = 0.0
+	_leap_contact_hit = false
 	if not _attack_animation_frames.is_empty():
 		sprite.texture = _idle_texture
 		sprite.flip_h = false
@@ -533,6 +589,7 @@ func take_damage(damage: int, attacker_position: Vector2) -> void:
 		return
 	_clear_attack()
 	health = maxi(0, health - damage)
+	_show_damage_feedback(damage)
 	if health == 0:
 		_die()
 		return
@@ -547,6 +604,27 @@ func take_damage(damage: int, attacker_position: Vector2) -> void:
 	_knockback_tween.set_ease(Tween.EASE_OUT)
 	_knockback_tween.set_trans(Tween.TRANS_CUBIC)
 	_knockback_tween.tween_property(self, "global_position", global_position + direction * knockback_force, knockback_duration)
+
+
+func _show_damage_feedback(damage: int) -> void:
+	var popup := Label.new()
+	popup.name = "DamageNumber"
+	popup.text = str(damage)
+	popup.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	popup.add_theme_font_size_override("font_size", 30)
+	popup.add_theme_color_override("font_color", Color("fff0bd"))
+	popup.add_theme_color_override("font_outline_color", Color("26182c"))
+	popup.add_theme_constant_override("outline_size", 6)
+	popup.z_as_relative = false
+	popup.z_index = 350
+	popup.position = global_position + Vector2(-36.0, -sprite.texture.get_height() * sprite.scale.y * 0.45)
+	get_tree().current_scene.add_child(popup)
+	var tween := popup.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "position:y", popup.position.y - 52.0, 0.62).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.62).set_delay(0.28)
+	tween.chain().tween_callback(popup.queue_free)
+
 
 func _die() -> void:
 	is_alive = false

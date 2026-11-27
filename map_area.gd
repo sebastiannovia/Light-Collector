@@ -28,7 +28,7 @@ const FOREST_PATH_ATLAS := "res://Tiles/Atlases/forest_paths.png"
 @export_group("Path Lights")
 @export_range(0, 255, 1) var path_tile_source_id := 0
 @export var path_tile_atlas_coords := Vector2i(0, 3)
-@export_range(0.75, 2.0, 0.05) var path_light_repel_tiles := 0.9
+@export_range(0.75, 2.0, 0.05) var path_light_repel_tiles := 1.35
 
 @export_group("Ground Appearance")
 @export_range(1.0, 1.5, 0.01) var floor_saturation := 1.15
@@ -183,7 +183,7 @@ func get_path_light_exposure(world_point: Vector2) -> float:
 		for x in range(cell.x - search.x, cell.x + search.x + 1):
 			var nearby := Vector2i(x, y)
 			if _lit_path_cells.has(nearby):
-				exposure += maxf(0.0, 1.0 - point.distance_to(ground.map_to_local(nearby)) / radius)
+				exposure = maxf(exposure, maxf(0.0, 1.0 - point.distance_to(ground.map_to_local(nearby)) / radius))
 	return exposure
 
 

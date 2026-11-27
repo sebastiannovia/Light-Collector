@@ -62,6 +62,12 @@ func add_item(item_id: StringName, quantity: int) -> int:
 		item_added.emit(item_id, accepted)
 		inventory_changed.emit()
 	if accepted < quantity:
+		if get_item_quantity(item_id) >= definition.max_carry_quantity:
+			_message = "Can't carry more %s. Item limit reached." % definition.display_name
+		elif _free_capacity_for(item_id, definition) <= 0:
+			_message = "Inventory full. Make room to collect %s." % definition.display_name
+		else:
+			_message = "Could only collect %d %s. Make room or check its carry limit." % [accepted, definition.display_name]
 		item_add_failed.emit(item_id, quantity - accepted)
 	return accepted
 

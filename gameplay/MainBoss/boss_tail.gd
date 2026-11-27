@@ -43,6 +43,7 @@ func take_damage(amount: int, _attacker_position: Vector2) -> void:
 	if not is_visible_in_tree() or health <= 0 or amount <= 0:
 		return
 	health = maxi(0, health - amount)
+	_show_damage_feedback(amount)
 	queue_redraw()
 	if health == 0:
 		set_active(false)
@@ -53,6 +54,26 @@ func take_damage(amount: int, _attacker_position: Vector2) -> void:
 	sprite.self_modulate = Color(1.7, 1.7, 1.7)
 	_flash = create_tween()
 	_flash.tween_property(sprite, "self_modulate", _color, 0.17)
+
+
+func _show_damage_feedback(amount: int) -> void:
+	var popup := Label.new()
+	popup.name = "DamageNumber"
+	popup.text = str(amount)
+	popup.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	popup.add_theme_font_size_override("font_size", 30)
+	popup.add_theme_color_override("font_color", Color("fff0bd"))
+	popup.add_theme_color_override("font_outline_color", Color("26182c"))
+	popup.add_theme_constant_override("outline_size", 6)
+	popup.z_as_relative = false
+	popup.z_index = 350
+	popup.position = global_position + Vector2(-36.0, -sprite.texture.get_height() * sprite.scale.y * 0.45)
+	get_tree().current_scene.add_child(popup)
+	var tween := popup.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "position:y", popup.position.y - 52.0, 0.62).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.62).set_delay(0.28)
+	tween.chain().tween_callback(popup.queue_free)
 
 
 func _draw() -> void:

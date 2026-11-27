@@ -6,6 +6,13 @@
 [ext_resource type="Texture2D" uid="uid://bd1pe8r11k4xp" path="res://Tiles/Atlases/forest_walls_sides.png" id="4_wa5g2"]
 [ext_resource type="Texture2D" uid="uid://ca4epxpo8rvx0" path="res://Tiles/Atlases/forest_walls_bottom.png" id="5_0aqnp"]
 [ext_resource type="Texture2D" uid="uid://j24papdb6slu" path="res://Tiles/Atlases/forest_paths.png" id="6_emvd7"]
+[ext_resource type="Texture2D" uid="uid://8ff6mlo0c02x" path="res://Tiles/Forest corners/forest_edge_corner_leftbottom.png" id="7_42yu0"]
+[ext_resource type="Texture2D" uid="uid://c4saup715gsga" path="res://Tiles/Forest corners/forest_edge_corner_lefttop.png" id="8_tubx6"]
+[ext_resource type="Texture2D" uid="uid://dcux6hhqa3s6o" path="res://Tiles/Forest corners/forest_edge_corner_rightbottom.png" id="9_8g6vd"]
+[ext_resource type="Texture2D" uid="uid://s7g0q8k1evl8" path="res://Tiles/Forest corners/forest_edge_corner_righttop.png" id="10_apq5k"]
+
+[sub_resource type="TileMapPattern" id="TileMapPattern_nycyh"]
+tile_data = PackedInt32Array(0, 7, 0, 65536, 131075, 0, 131072, 65539, 0, 196608, 3, 0, 327680, 196611, 0, 393216, 131075, 0, 458752, 65539, 0, 524288, 6, 0, 1, 65538, 0, 524289, 65540, 1, 2, 131074, 0, 524290, 65540, 0, 3, 2, 1, 524291, 131076, 0, 4, 65538, 0, 524292, 4, 0, 5, 131074, 1, 524293, 131076, 0, 6, 2, 0, 524294, 4, 0, 7, 65538, 1, 524295, 4, 1, 8, 131074, 1, 524296, 65540, 0, 9, 2, 1, 524297, 131076, 0, 10, 65538, 0, 524298, 4, 0, 11, 131074, 0, 524299, 65540, 0, 12, 2, 0, 524300, 131076, 1, 13, 65538, 0, 524301, 131076, 1, 14, 9, 0, 65550, 131075, 1, 131086, 65539, 1, 196622, 3, 1, 327694, 196611, 1, 393230, 131075, 1, 458766, 65539, 1, 524302, 8, 0)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o8c25"]
 texture = ExtResource("1_6rxil")
@@ -94,6 +101,26 @@ texture_region_size = Vector2i(256, 256)
 1:0/0 = 0
 2:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_l8axx"]
+texture = ExtResource("7_42yu0")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mhaen"]
+texture = ExtResource("8_tubx6")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4sknv"]
+texture = ExtResource("9_8g6vd")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2n7mt"]
+texture = ExtResource("10_apq5k")
+texture_region_size = Vector2i(256, 256)
+0:0/0 = 0
+
 [resource]
 tile_size = Vector2i(256, 256)
 custom_data_layer_0/name = "forest_variant"
@@ -104,3 +131,8 @@ sources/2 = SubResource("TileSetAtlasSource_42yu0")
 sources/3 = SubResource("TileSetAtlasSource_tubx6")
 sources/4 = SubResource("TileSetAtlasSource_8g6vd")
 sources/5 = SubResource("TileSetAtlasSource_apq5k")
+sources/6 = SubResource("TileSetAtlasSource_l8axx")
+sources/7 = SubResource("TileSetAtlasSource_mhaen")
+sources/8 = SubResource("TileSetAtlasSource_4sknv")
+sources/9 = SubResource("TileSetAtlasSource_2n7mt")
+pattern_0 = SubResource("TileMapPattern_nycyh")

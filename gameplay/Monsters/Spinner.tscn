@@ -1,7 +1,27 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://6j2rhc3rxd8d"]
 
-[ext_resource type="Script" path="res://gameplay/Monsters/basic_monster.gd" id="1_rmd0v"]
-[ext_resource type="Texture2D" path="res://Assets/Monsters/spinner_sprite.png" id="2_vhdf1"]
+[ext_resource type="Script" uid="uid://1p4j0xe6r5q8" path="res://gameplay/Monsters/basic_monster.gd" id="1_rmd0v"]
+[ext_resource type="Texture2D" uid="uid://djofdbvrklyhp" path="res://Assets/Animations/spinner/spinner_walking_to_you_1.png" id="2_3f0p8"]
+[ext_resource type="Texture2D" uid="uid://dj11vtpahrnqd" path="res://Assets/Monsters/spinner_sprite.png" id="2_vhdf1"]
+[ext_resource type="Texture2D" uid="uid://bsv4546kwcgwt" path="res://Assets/Animations/spinner/spinner_walking_to_you_2.png" id="3_vprea"]
+[ext_resource type="Texture2D" uid="uid://cgwgmg4ap0g8w" path="res://Assets/Animations/spinner/spinner_walking_to_you_3.png" id="4_hf54c"]
+[ext_resource type="Texture2D" uid="uid://g76uxbp5s8n3" path="res://Assets/Animations/spinner/spinner_walking_to_you_4.png" id="5_g8vce"]
+[ext_resource type="Texture2D" uid="uid://sxhef08g3p71" path="res://Assets/Animations/spinner/spinner_walking_to_you_5.png" id="6_vsnpd"]
+[ext_resource type="Texture2D" uid="uid://c41vc6kynoulu" path="res://Assets/Animations/spinner/spinner_walking_to_you_6.png" id="7_gfgug"]
+[ext_resource type="Texture2D" uid="uid://bbbj5x0ndr1so" path="res://Assets/Animations/spinner/spinner_walking_to_you_7.png" id="8_ryqwm"]
+[ext_resource type="Texture2D" uid="uid://dg8ucegnqik5f" path="res://Assets/Animations/spinner/spinner_walking_to_you_8.png" id="9_nupsw"]
+[ext_resource type="Texture2D" uid="uid://cajx5bbj6jtue" path="res://Assets/Animations/spinner/spinner_walking_to_you_9.png" id="10_oap83"]
+[ext_resource type="Texture2D" uid="uid://moaqj31h7upq" path="res://Assets/Animations/spinner/spinner_walking_to_you_10.png" id="11_1augb"]
+[ext_resource type="Texture2D" uid="uid://ds0juekwbkntl" path="res://Assets/Animations/spinner/spinner_walking_from_you_1.png" id="12_6dh7d"]
+[ext_resource type="Texture2D" uid="uid://bgtk40rppt1uh" path="res://Assets/Animations/spinner/spinner_walking_from_you_2.png" id="13_bmpig"]
+[ext_resource type="Texture2D" uid="uid://cwtje0355a6cj" path="res://Assets/Animations/spinner/spinner_walking_from_you_3.png" id="14_e8ssj"]
+[ext_resource type="Texture2D" uid="uid://c21vsp7ccnsue" path="res://Assets/Animations/spinner/spinner_walking_from_you_4.png" id="15_dr8p8"]
+[ext_resource type="Texture2D" uid="uid://drtrsoiwusl2d" path="res://Assets/Animations/spinner/spinner_walking_from_you_5.png" id="16_jr248"]
+[ext_resource type="Texture2D" uid="uid://tn02irnvp0db" path="res://Assets/Animations/spinner/spinner_walking_from_you_6.png" id="17_nupkm"]
+[ext_resource type="Texture2D" uid="uid://dmcm64mx61pg6" path="res://Assets/Animations/spinner/spinner_walking_from_you_7.png" id="18_w2txl"]
+[ext_resource type="Texture2D" uid="uid://clks6wnnxvb25" path="res://Assets/Animations/spinner/spinner_walking_from_you_8.png" id="19_uw3ou"]
+[ext_resource type="Texture2D" uid="uid://dososlrykl13j" path="res://Assets/Animations/spinner/spinner_walking_from_you_9.png" id="20_8slla"]
+[ext_resource type="Texture2D" uid="uid://diww18afx0ipy" path="res://Assets/Animations/spinner/spinner_walking_from_you_10.png" id="21_t5w7k"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rmd0v"]
 size = Vector2(170, 350)
@@ -13,6 +33,8 @@ radius = 320.0
 collision_layer = 2
 script = ExtResource("1_rmd0v")
 display_name = "Spinner"
+walk_forward_frames = Array[Texture2D]([ExtResource("2_3f0p8"), ExtResource("3_vprea"), ExtResource("4_hf54c"), ExtResource("5_g8vce"), ExtResource("6_vsnpd"), ExtResource("7_gfgug"), ExtResource("8_ryqwm"), ExtResource("9_nupsw"), ExtResource("10_oap83"), ExtResource("11_1augb")])
+walk_backward_frames = Array[Texture2D]([ExtResource("12_6dh7d"), ExtResource("13_bmpig"), ExtResource("14_e8ssj"), ExtResource("15_dr8p8"), ExtResource("16_jr248"), ExtResource("17_nupkm"), ExtResource("18_w2txl"), ExtResource("19_uw3ou"), ExtResource("20_8slla"), ExtResource("21_t5w7k")])
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1722079138]
 texture = ExtResource("2_vhdf1")

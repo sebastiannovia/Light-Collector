@@ -54,6 +54,8 @@ var _swipe_direction := 1.0
 @onready var _panel: Control = $HUD/BossPanel
 @onready var _title: Label = $HUD/BossPanel/Content/Title
 @onready var _detail: Label = $HUD/BossPanel/Content/Detail
+var _tail_status_labels: Array[Label] = []
+var _tail_status_bars: Array[ProgressBar] = []
 
 
 func _ready() -> void:
@@ -64,6 +66,7 @@ func _ready() -> void:
 		_tails[side].defeated.connect(_on_tail_defeated.bind(side))
 		_tails[side].set_active(false)
 	_effects.draw.connect(_draw_attack_effects)
+	_create_tail_status_guide()
 	_panel.hide()
 	_player = get_tree().get_first_node_in_group("map_player") as PlayerController
 	if not _player:
@@ -89,13 +92,15 @@ func _physics_process(delta: float) -> void:
 			_begin_fight()
 		return
 	if _player.health_current <= 0.0:
-		_retry()
+		# Player handles the death transition and respawns at Main Base.
+		_release_arena()
 		return
 	for side in range(_tails.size()):
 		if _replacement_time[side] > 0.0:
 			_replacement_time[side] = maxf(0.0, _replacement_time[side] - delta)
 			if _replacement_time[side] == 0.0:
 				_tails[side].summon(tail_health, side == EYE)
+	_update_tail_count()
 	if _attack == Attack.NONE:
 		_delay = maxf(0.0, _delay - delta)
 		if _delay == 0.0:
@@ -133,7 +138,35 @@ func _on_tail_defeated(side: int) -> void:
 
 
 func _update_tail_count() -> void:
-	_detail.text = "Eye tails: %d     •     Mouth tails: %d" % [_remaining[EYE], _remaining[MOUTH]]
+	_detail.text = "Destroy all tails. A replacement appears when a tail is regenerating."
+	for side in range(2):
+		var side_name := "Eye" if side == EYE else "Mouth"
+		var state := ""
+		if _replacement_time[side] > 0.0:
+			state = "  •  REGENERATING %.1fs" % _replacement_time[side]
+		_tail_status_labels[side].text = "%s tails: %d / %d%s" % [side_name, _remaining[side], tails_per_side, state]
+		_tail_status_bars[side].max_value = maxf(1.0, tails_per_side)
+		_tail_status_bars[side].value = _remaining[side]
+
+
+func _create_tail_status_guide() -> void:
+	_panel.custom_minimum_size.x = 640.0
+	for side in range(2):
+		var row := HBoxContainer.new()
+		row.name = "EyeTailStatus" if side == EYE else "MouthTailStatus"
+		row.add_theme_constant_override("separation", 10)
+		var label := Label.new()
+		label.custom_minimum_size.x = 330.0
+		label.add_theme_font_size_override("font_size", 16)
+		row.add_child(label)
+		var bar := ProgressBar.new()
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.custom_minimum_size.y = 14.0
+		bar.show_percentage = false
+		row.add_child(bar)
+		$HUD/BossPanel/Content.add_child(row)
+		_tail_status_labels.append(label)
+		_tail_status_bars.append(bar)
 
 
 func _begin_attack() -> void:
@@ -176,7 +209,7 @@ func _advance_attack(delta: float) -> void:
 			if _attack_time >= impact_time and not _attack_hit:
 				_attack_hit = true
 				if player_point.distance_to(_eye_target) <= eye_radius:
-					_player.take_damage(eye_damage)
+					_player.take_damage(eye_damage, global_position)
 			if _attack_time >= impact_time + 0.22:
 				_end_attack()
 		Attack.SWIPE:
@@ -198,7 +231,7 @@ func _advance_swipe(delta: float, player_point: Vector2) -> void:
 		var half_width := _swipe_half_width(y_fraction)
 		if player_point.x >= minf(previous_x, current_x) - half_width and player_point.x <= maxf(previous_x, current_x) + half_width:
 			_attack_hit = true
-			_player.take_damage(swipe_damage)
+			_player.take_damage(swipe_damage, tail.global_position)
 	if progress >= 1.0:
 		_end_attack()
 

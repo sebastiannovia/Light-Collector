@@ -13,6 +13,7 @@ signal monster_spawned(monster: Node2D, area: MapArea)
 @export_range(0.0, 1200.0, 16.0) var minimum_player_distance := 640.0
 @export_range(32.0, 512.0, 16.0) var area_edge_margin := 160.0
 @export_range(16.0, 160.0, 8.0) var spawn_clearance_radius := 64.0
+@export_range(0.0, 256.0, 8.0) var light_spawn_clearance_radius := 80.0
 @export_flags_2d_physics var spawn_collision_mask := 1
 @export_range(1, 80, 1) var position_attempts := 24
 
@@ -125,7 +126,7 @@ func _find_spawn_position(area: MapArea) -> Vector2:
 		var candidate := area.to_global(local_point)
 		if candidate.distance_to(_player.global_position) < minimum_player_distance:
 			continue
-		if area.get_path_light_exposure(candidate) > 0.001:
+		if _within_path_light(candidate, area):
 			continue
 		if _too_close_to_monster(candidate, 120.0):
 			continue
@@ -133,6 +134,16 @@ func _find_spawn_position(area: MapArea) -> Vector2:
 			continue
 		return candidate
 	return Vector2.INF
+
+
+func _within_path_light(point: Vector2, area: MapArea) -> bool:
+	if area.get_path_light_exposure(point) > 0.01:
+		return true
+	for index in range(8):
+		var sample := point + Vector2.RIGHT.rotated(TAU * float(index) / 8.0) * light_spawn_clearance_radius
+		if area.get_path_light_exposure(sample) > 0.01:
+			return true
+	return false
 
 
 func _spawn_monster(area: MapArea, scene: PackedScene, world_position: Vector2) -> void:

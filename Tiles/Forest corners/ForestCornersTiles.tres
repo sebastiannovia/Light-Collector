@@ -1,9 +1,9 @@
-[gd_resource type="TileSet" format=3]
+[gd_resource type="TileSet" format=3 uid="uid://7avme3ou0h8s"]
 
-[ext_resource type="Texture2D" path="res://Tiles/Forest corners/forest_edge_corner_leftbottom.png" id="1_dog00"]
-[ext_resource type="Texture2D" path="res://Tiles/Forest corners/forest_edge_corner_lefttop.png" id="2_12og6"]
-[ext_resource type="Texture2D" path="res://Tiles/Forest corners/forest_edge_corner_rightbottom.png" id="3_3our0"]
-[ext_resource type="Texture2D" path="res://Tiles/Forest corners/forest_edge_corner_righttop.png" id="4_v6xgq"]
+[ext_resource type="Texture2D" uid="uid://8ff6mlo0c02x" path="res://Tiles/Forest corners/forest_edge_corner_leftbottom.png" id="1_dog00"]
+[ext_resource type="Texture2D" uid="uid://c4saup715gsga" path="res://Tiles/Forest corners/forest_edge_corner_lefttop.png" id="2_12og6"]
+[ext_resource type="Texture2D" uid="uid://dcux6hhqa3s6o" path="res://Tiles/Forest corners/forest_edge_corner_rightbottom.png" id="3_3our0"]
+[ext_resource type="Texture2D" uid="uid://s7g0q8k1evl8" path="res://Tiles/Forest corners/forest_edge_corner_righttop.png" id="4_v6xgq"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lptsa"]
 texture = ExtResource("1_dog00")

@@ -50,6 +50,19 @@ func notify_item(item_name: String, quantity: int, icon: Texture2D = null, fallb
 		_notifications.pop_front()
 	queue_redraw()
 
+func notify_message(message: String, tint: Color = Color("ffd166")) -> void:
+	if not style or not style.notifications_enabled or message.is_empty():
+		return
+	_notifications.append({
+		"text": message,
+		"icon": null,
+		"color": tint,
+		"remaining": style.notification_duration,
+	})
+	while _notifications.size() > style.notification_limit:
+		_notifications.pop_front()
+	queue_redraw()
+
 func _process(delta: float) -> void:
 	if _notifications.is_empty():
 		return
