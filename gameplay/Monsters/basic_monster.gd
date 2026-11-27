@@ -546,9 +546,14 @@ func _update_movement_animation(delta: float, move_direction: Vector2) -> void:
 
 	var selected_frames: Array[Texture2D] = walk_frames
 	var uses_directional_frames := not walk_forward_frames.is_empty() or not walk_backward_frames.is_empty() or not walk_sideways_frames.is_empty()
+	var moving_sideways := absf(move_direction.x) > absf(move_direction.y)
 	if uses_directional_frames:
-		if absf(move_direction.x) > absf(move_direction.y):
+		if moving_sideways:
 			selected_frames = walk_sideways_frames
+			if selected_frames.is_empty():
+				# Spinner currently has front/back cycles only; keep those frames
+				# animating during horizontal movement until side frames are supplied.
+				selected_frames = walk_forward_frames if not walk_forward_frames.is_empty() else walk_backward_frames
 		elif move_direction.y < 0.0:
 			selected_frames = walk_backward_frames
 		else:
@@ -574,7 +579,7 @@ func _update_movement_animation(delta: float, move_direction: Vector2) -> void:
 
 	sprite.texture = selected_frames[_animation_frame]
 	if uses_directional_frames:
-		sprite.flip_h = selected_frames == walk_sideways_frames and (move_direction.x > 0.0 if sideways_frames_face_left else move_direction.x < 0.0)
+		sprite.flip_h = moving_sideways and (move_direction.x > 0.0 if sideways_frames_face_left else move_direction.x < 0.0)
 	else:
 		sprite.flip_h = move_direction.x < 0.0
 

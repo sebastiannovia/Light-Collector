@@ -1,4 +1,5 @@
 shader_type canvas_item;
+render_mode unshaded;
 
 uniform vec4 eye_color : source_color = vec4(0.9255, 0.5843, 0.3216, 1.0);
 uniform vec4 glow_color : source_color = vec4(1.0, 0.78, 0.34, 1.0);
@@ -9,6 +10,7 @@ uniform float color_tolerance = 0.16;
 uniform float night_strength = 0.0;
 uniform float sword_strength = 0.0;
 uniform float sword_radius = 4.0;
+uniform float body_pulse = 0.0;
 
 float eye_mask_at(vec2 uv) {
 	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
@@ -49,6 +51,7 @@ void fragment() {
 	float halo = max(inner_halo * 0.48, outer_halo * 0.22) * (1.0 - eye_core);
 	float sword_halo = max(sword_inner * 0.5, sword_outer * 0.28) * (1.0 - sword_core);
 	vec4 result = texel * COLOR;
+	result.rgb *= 1.0 + max(body_pulse, 0.0);
 	float strength = max(night_strength, 0.0);
 	result.rgb += glow_color.rgb * strength * (eye_core * 0.8 + halo * 0.72);
 	result.a = max(result.a, halo * strength * 0.52 * COLOR.a);

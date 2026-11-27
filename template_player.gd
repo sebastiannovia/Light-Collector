@@ -13,7 +13,6 @@ const PLAYER_FRONT_TEXTURE = preload("res://Assets/Player/Front.png")
 const PLAYER_BACK_TEXTURE = preload("res://Assets/Player/Back.png")
 const PLAYER_SIDE_TEXTURE = preload("res://Assets/Player/Side.png")
 const PLAYER_EYE_GLOW_SHADER = preload("res://gameplay/player_eye_glow.gdshader")
-const WORLD_GLOW = preload("res://gameplay/world_glow.gd")
 const PLAYER_IDLE_BACK_FRAMES: Array[Texture2D] = [
 	preload("res://Assets/Animations/Character/mc_idle_back1.png"),
 	preload("res://Assets/Animations/Character/mc_idle_back2.png"),
@@ -102,6 +101,12 @@ const PLAYER_ATTACK_RIGHT_FRAMES: Array[Texture2D] = [
 	preload("res://Assets/Animations/Character/mc_attack_right3.png"),
 	preload("res://Assets/Animations/Character/mc_attack_right4.png"),
 ]
+const PLAYER_TREE_CHOP_FRAMES: Array[Texture2D] = [
+	preload("res://Assets/Animations/Character/cutting_tree_trial1.png"),
+	preload("res://Assets/Animations/Character/cutting_tree_trial2.png"),
+	preload("res://Assets/Animations/Character/cutting_tree_trial3.png"),
+	preload("res://Assets/Animations/Character/cutting_tree_trial4.png"),
+]
 const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 
 @export var move_speed := 420.0
@@ -116,9 +121,7 @@ const PAUSE_MENU_SCENE = preload("res://gameplay/pause_menu/pause_menu.tscn")
 @export_range(0.1, 5.0, 0.1) var eye_glow_transition_speed := 1.6
 
 @export_group("Player Visibility Glow")
-@export var player_glow_color := Color("ffd891")
-@export_range(64.0, 640.0, 8.0) var player_glow_radius := 190.0
-@export_range(0.0, 1.5, 0.05) var player_glow_intensity := 0.42
+@export_range(0.0, 0.15, 0.005) var player_color_pulse_strength := 0.045
 
 @export_group("Combat")
 @export_range(1, 1000, 1) var attack_damage := 80
@@ -164,10 +167,16 @@ const BLADE_PIVOT_DISTANCE := 22.0
 @export_range(0.0, 1000.0, 1.0) var sleep_current := 100.0
 @export_range(0.0, 3.0, 0.05) var damage_invulnerability_duration := 0.65
 @export_group("Damage Feedback")
-@export_range(0.0, 1200.0, 10.0) var hurt_knockback_force := 560.0
-@export_range(0.05, 0.6, 0.01) var hurt_knockback_duration := 0.2
-@export var hurt_flash_color := Color("ff6868")
-@export_range(0.05, 0.8, 0.01) var hurt_flash_duration := 0.22
+@export_range(0.0, 1800.0, 10.0) var hurt_knockback_force := 1050.0
+@export_range(0.05, 0.6, 0.01) var hurt_knockback_duration := 0.3
+@export var hurt_flash_color := Color("ff1b35")
+@export_range(0.05, 0.8, 0.01) var hurt_flash_duration := 0.14
+@export_range(0.0, 60.0, 1.0) var hurt_camera_shake_strength := 28.0
+@export_range(0.05, 0.8, 0.01) var hurt_camera_shake_duration := 0.32
+@export_group("Tree Cutting")
+@export_range(1.0, 24.0, 0.5) var tree_chop_animation_fps := 12.0
+@export var tree_chop_frames_face_left := false
+@export_group("Respawn")
 @export_range(0.1, 10.0, 0.1) var respawn_delay := 1.5
 @export_range(0, 999999, 1) var starting_light_count := 0
 
@@ -187,6 +196,10 @@ var minimap_view: Control
 var light_count := 0
 var player_hud: Control
 var is_attacking := false
+var _is_chopping_tree := false
+var _tree_chop_elapsed := 0.0
+var _tree_chop_frame := -1
+var _tree_chop_frames: Array[Texture2D] = []
 var _hit_targets: Dictionary = {}
 var facing_direction := Vector2.DOWN
 var _run_animation_active := false
@@ -207,12 +220,12 @@ var _damage_invulnerability_left := 0.0
 var _hurt_knockback_left := 0.0
 var _hurt_knockback_velocity := Vector2.ZERO
 var _hurt_flash_tween: Tween
+var _hurt_camera_shake_left := 0.0
 var _sword_hit_shape := CapsuleShape2D.new()
 var _eye_glow_material: ShaderMaterial
 var _eye_glow_level := 0.0
 var _eye_glow_time := 0.0
 var _day_night_cycle: DayNightCycle
-var _player_glow: PointLight2D
 var _respawn_pending := false
 
 func _ready() -> void:
@@ -232,9 +245,6 @@ func _ready() -> void:
 	_eye_glow_material.shader = PLAYER_EYE_GLOW_SHADER
 	_eye_glow_material.set_shader_parameter("glow_color", eye_glow_color)
 	player_sprite.material = _eye_glow_material
-	_player_glow = WORLD_GLOW.make_light(player_glow_radius, player_glow_color, player_glow_intensity)
-	_player_glow.name = "VisibilityGlow"
-	player_sprite.add_child(_player_glow)
 	_set_player_sprite_texture(player_sprite.texture)
 	_update_eye_glow(0.0)
 	add_to_group("map_player")
@@ -253,6 +263,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_eye_glow(delta)
+	if _is_chopping_tree:
+		_advance_tree_chop_animation(delta)
 	if Input.is_action_just_pressed("attack"):
 		attack()
 	_dash_cooldown_left = maxf(0.0, _dash_cooldown_left - delta)
@@ -263,14 +275,15 @@ func _process(delta: float) -> void:
 			_dash_afterimage_elapsed = 0.0
 			_spawn_dash_afterimage()
 	_damage_invulnerability_left = maxf(0.0, _damage_invulnerability_left - delta)
+	_update_hurt_camera_shake(delta)
 	if transitioning or not current_area:
 		return
 	var horizontal := int(Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D)) - int(Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A))
 	var vertical := int(Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S)) - int(Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W))
-	var direction := Vector2(horizontal, vertical).normalized()
+	var direction := Vector2.ZERO if _is_chopping_tree else Vector2(horizontal, vertical).normalized()
 	if not direction.is_zero_approx():
 		facing_direction = direction
-	if not is_attacking:
+	if not is_attacking and not _is_chopping_tree:
 		if direction.is_zero_approx():
 			_stop_run_animation()
 			_advance_idle_animation(delta)
@@ -381,13 +394,36 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_place_path_lights()
 
 func _try_interact_with_nearby_object() -> bool:
-	for interaction_group in ["construction_sites", "e_interactables"]:
-		for node in get_tree().get_nodes_in_group(interaction_group):
-			if not node.has_method("is_player_nearby") or not node.has_method("interact"):
-				continue
-			if bool(node.call("is_player_nearby")):
-				node.call("interact", self)
-				return true
+	if _is_chopping_tree:
+		return false
+	for node in get_tree().get_nodes_in_group("construction_sites"):
+		if node.has_method("is_player_nearby") and node.has_method("interact") and bool(node.call("is_player_nearby")):
+			node.call("interact", self)
+			return true
+	var target_tree: Node2D
+	var nearest_distance := INF
+	for node in get_tree().get_nodes_in_group("e_interactables"):
+		if not node.has_method("is_in_front_of_player") or not node.has_method("interact"):
+			continue
+		if not bool(node.call("is_in_front_of_player", self)):
+			continue
+		var tree := node as Node2D
+		if not tree:
+			continue
+		var distance := global_position.distance_squared_to(tree.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			target_tree = tree
+	if target_tree:
+		target_tree.call("interact", self)
+		_start_tree_chop_animation()
+		return true
+	for node in get_tree().get_nodes_in_group("e_interactables"):
+		if node.has_method("is_in_front_of_player"):
+			continue
+		if node.has_method("is_player_nearby") and node.has_method("interact") and bool(node.call("is_player_nearby")):
+			node.call("interact", self)
+			return true
 	return false
 
 func add_light(amount: int = 1) -> void:
@@ -437,9 +473,21 @@ func _play_hurt_flash() -> void:
 		return
 	if _hurt_flash_tween and _hurt_flash_tween.is_running():
 		_hurt_flash_tween.kill()
-	player_sprite.self_modulate = hurt_flash_color
+	player_sprite.self_modulate = Color.WHITE
 	_hurt_flash_tween = create_tween()
-	_hurt_flash_tween.tween_property(player_sprite, "self_modulate", Color.WHITE, hurt_flash_duration)
+	_hurt_flash_tween.set_loops(3)
+	_hurt_flash_tween.tween_property(player_sprite, "self_modulate", hurt_flash_color, hurt_flash_duration * 0.32)
+	_hurt_flash_tween.tween_property(player_sprite, "self_modulate", Color.WHITE, hurt_flash_duration * 0.68)
+	_hurt_camera_shake_left = hurt_camera_shake_duration
+
+func _update_hurt_camera_shake(delta: float) -> void:
+	if _hurt_camera_shake_left <= 0.0:
+		return
+	_hurt_camera_shake_left = maxf(0.0, _hurt_camera_shake_left - delta)
+	var strength := hurt_camera_shake_strength * (_hurt_camera_shake_left / maxf(hurt_camera_shake_duration, 0.01))
+	camera.offset = Vector2(randf_range(-strength, strength), randf_range(-strength, strength))
+	if _hurt_camera_shake_left <= 0.0:
+		camera.offset = Vector2.ZERO
 
 func _respawn_at_main_base() -> void:
 	await get_tree().create_timer(respawn_delay).timeout
@@ -468,6 +516,8 @@ func _respawn_at_main_base() -> void:
 	_dash_time_left = 0.0
 	_hurt_knockback_left = 0.0
 	_hurt_knockback_velocity = Vector2.ZERO
+	_hurt_camera_shake_left = 0.0
+	camera.offset = Vector2.ZERO
 	player_sprite.self_modulate = Color.WHITE
 	current_area = base
 	_set_active_area(base)
@@ -745,6 +795,8 @@ func _update_eye_glow(delta: float) -> void:
 	_eye_glow_material.set_shader_parameter("sword_radius", sword_glow_radius)
 	var swing_pulse := 0.55 + 0.45 * sin(clampf(_swing_progress, 0.0, 1.0) * PI) if is_attacking else 0.0
 	_eye_glow_material.set_shader_parameter("sword_strength", sword_glow_intensity * swing_pulse)
+	var body_pulse := player_color_pulse_strength * (0.5 + 0.5 * sin(_eye_glow_time * 4.2))
+	_eye_glow_material.set_shader_parameter("body_pulse", body_pulse)
 
 func _set_player_sprite_texture(texture: Texture2D) -> void:
 	if not player_sprite:
@@ -839,7 +891,7 @@ func _stop_run_animation() -> void:
 	_run_animation_frame = 0
 
 func attack() -> void:
-	if is_attacking or transitioning:
+	if is_attacking or _is_chopping_tree or transitioning:
 		return
 	is_attacking = true
 	_swing_direction = facing_direction.normalized()
@@ -855,6 +907,39 @@ func _attack_frames_for_direction(direction: Vector2) -> Array[Texture2D]:
 	if absf(direction.x) > absf(direction.y):
 		return PLAYER_ATTACK_LEFT_FRAMES if direction.x < 0.0 else PLAYER_ATTACK_RIGHT_FRAMES
 	return PLAYER_ATTACK_BACK_FRAMES if direction.y < 0.0 else PLAYER_ATTACK_FRONT_FRAMES
+
+
+func _start_tree_chop_animation() -> void:
+	if is_attacking or transitioning:
+		return
+	_is_chopping_tree = true
+	_tree_chop_elapsed = 0.0
+	_tree_chop_frame = 0
+	_stop_run_animation()
+	_stop_idle_animation()
+	if absf(facing_direction.x) > absf(facing_direction.y):
+		_tree_chop_frames = PLAYER_TREE_CHOP_FRAMES
+		player_sprite.flip_h = facing_direction.x > 0.0 if tree_chop_frames_face_left else facing_direction.x < 0.0
+	else:
+		_tree_chop_frames = PLAYER_ATTACK_BACK_FRAMES if facing_direction.y < 0.0 else PLAYER_ATTACK_FRONT_FRAMES
+		player_sprite.flip_h = false
+	_set_player_sprite_texture(_tree_chop_frames[0])
+
+
+func _advance_tree_chop_animation(delta: float) -> void:
+	_tree_chop_elapsed += delta
+	var frame_index := floori(_tree_chop_elapsed * tree_chop_animation_fps)
+	if frame_index >= _tree_chop_frames.size():
+		_is_chopping_tree = false
+		_tree_chop_elapsed = 0.0
+		_tree_chop_frame = -1
+		_tree_chop_frames = []
+		_update_player_sprite()
+		return
+	if frame_index == _tree_chop_frame:
+		return
+	_tree_chop_frame = frame_index
+	_set_player_sprite_texture(_tree_chop_frames[frame_index])
 
 
 func _advance_swing(delta: float) -> void:

@@ -22,6 +22,12 @@
 [ext_resource type="Texture2D" uid="uid://clks6wnnxvb25" path="res://Assets/Animations/spinner/spinner_walking_from_you_8.png" id="19_uw3ou"]
 [ext_resource type="Texture2D" uid="uid://dososlrykl13j" path="res://Assets/Animations/spinner/spinner_walking_from_you_9.png" id="20_8slla"]
 [ext_resource type="Texture2D" uid="uid://diww18afx0ipy" path="res://Assets/Animations/spinner/spinner_walking_from_you_10.png" id="21_t5w7k"]
+[ext_resource type="Texture2D" uid="uid://bbj70bawvaqmd" path="res://Assets/Animations/spinner/spinner_walking_sideways_1.png" id="22_ryqwm"]
+[ext_resource type="Texture2D" uid="uid://cvscbkb8w1w8" path="res://Assets/Animations/spinner/spinner_walking_sideways_2.png" id="23_nupsw"]
+[ext_resource type="Texture2D" uid="uid://b7gumqxd61rey" path="res://Assets/Animations/spinner/spinner_walking_sideways_3.png" id="24_oap83"]
+[ext_resource type="Texture2D" uid="uid://5mtvdd2innsm" path="res://Assets/Animations/spinner/spinner_walking_sideways_4.png" id="25_1augb"]
+[ext_resource type="Texture2D" uid="uid://d33jxtlms0vs1" path="res://Assets/Animations/spinner/spinner_walking_sideways_5.png" id="26_6dh7d"]
+[ext_resource type="Texture2D" uid="uid://bfi4s82xj5qwh" path="res://Assets/Animations/spinner/spinner_walking_sideways_6.png" id="27_bmpig"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rmd0v"]
 size = Vector2(170, 350)
@@ -35,6 +41,8 @@ script = ExtResource("1_rmd0v")
 display_name = "Spinner"
 walk_forward_frames = Array[Texture2D]([ExtResource("2_3f0p8"), ExtResource("3_vprea"), ExtResource("4_hf54c"), ExtResource("5_g8vce"), ExtResource("6_vsnpd"), ExtResource("7_gfgug"), ExtResource("8_ryqwm"), ExtResource("9_nupsw"), ExtResource("10_oap83"), ExtResource("11_1augb")])
 walk_backward_frames = Array[Texture2D]([ExtResource("12_6dh7d"), ExtResource("13_bmpig"), ExtResource("14_e8ssj"), ExtResource("15_dr8p8"), ExtResource("16_jr248"), ExtResource("17_nupkm"), ExtResource("18_w2txl"), ExtResource("19_uw3ou"), ExtResource("20_8slla"), ExtResource("21_t5w7k")])
+walk_sideways_frames = Array[Texture2D]([ExtResource("22_ryqwm"), ExtResource("23_nupsw"), ExtResource("24_oap83"), ExtResource("25_1augb"), ExtResource("26_6dh7d"), ExtResource("27_bmpig")])
+sideways_frames_face_left = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1722079138]
 texture = ExtResource("2_vhdf1")

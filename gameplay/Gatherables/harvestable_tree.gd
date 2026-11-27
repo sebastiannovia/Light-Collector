@@ -58,6 +58,7 @@ static var _used_texture_rects: Dictionary[Texture2D, Rect2] = {}
 @export_range(1, 20, 1) var hits_required := 4
 @export_range(1, 999, 1) var wood_quantity := 3
 @export_range(32.0, 256.0, 1.0) var interaction_range := 176.0
+@export_range(-1.0, 1.0, 0.05) var front_facing_dot_threshold := 0.62
 @export var prompt_text := "[E] Cut Tree"
 
 @export_group("Hit Animation")
@@ -154,7 +155,7 @@ func _process(delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("map_player") as Node2D
 		_player_sprite = _player.get_node_or_null("PlayerSprite") as Sprite2D if _player else null
 	var was_nearby := _nearby_player
-	_nearby_player = not _depleted and is_instance_valid(_player) and _player.global_position.distance_to(global_position) <= interaction_range
+	_nearby_player = is_in_front_of_player(_player)
 	if was_nearby != _nearby_player or (_shake_tween and _shake_tween.is_running()):
 		queue_redraw()
 	# Keep the depth scale consistent with the player's feet.
@@ -233,8 +234,24 @@ func _update_hollow_eyes(delta: float) -> void:
 func is_player_nearby() -> bool:
 	return _nearby_player and not _depleted
 
+
+func is_in_front_of_player(player: Node) -> bool:
+	if _depleted or not is_instance_valid(player) or not player is Node2D:
+		return false
+	var player_node := player as Node2D
+	var player_point := player_node.global_position
+	if player_node.has_method("get_depth_sort_y"):
+		player_point.y = float(player_node.call("get_depth_sort_y"))
+	var offset := global_position - player_point
+	if offset.length() > interaction_range or offset.is_zero_approx():
+		return false
+	var facing: Vector2 = player_node.get("facing_direction")
+	if facing.is_zero_approx():
+		return false
+	return facing.normalized().dot(offset.normalized()) >= front_facing_dot_threshold
+
 func interact(player: Node) -> bool:
-	if not is_player_nearby():
+	if not is_in_front_of_player(player):
 		return false
 	hit_count += 1
 	hit.emit(hit_count, hits_required)
